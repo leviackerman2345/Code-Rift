@@ -1,0 +1,8 @@
+{
+    "menu_play"     : "Play",
+    "menu_settings" : "Settings",
+    "menu_credits"  : "Credits",
+    "menu_quit"     : "Quit",
+    "loading"       : "Loading...",
+    "loading_done"  : "All assets loaded."
+}

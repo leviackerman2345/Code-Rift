@@ -1,0 +1,63 @@
+namespace CodeRift.Utils
+{
+    public static class Constants
+    {
+        // Splash
+        public const int SPLASH_WIDTH = 600;
+        public const int SPLASH_HEIGHT = 340;
+        public const int SPLASH_MIN_MS = 2000;
+
+        // Image Keys - Backgrounds
+        public const string IMG_BG_MENU = "IMG_BG_MENU";
+        public const string IMG_BG_LEVEL1 = "IMG_BG_LEVEL1";
+        public const string IMG_BG_LEVEL2 = "IMG_BG_LEVEL2";
+
+        // Image Keys - Player
+        public const string IMG_PLAYER_IDLE = "IMG_PLAYER_IDLE";
+        public const string IMG_PLAYER_RUN = "IMG_PLAYER_RUN";
+        public const string IMG_PLAYER_JUMP = "IMG_PLAYER_JUMP";
+        public const string IMG_PLAYER_ATTACK = "IMG_PLAYER_ATTACK";
+
+        // Image Keys - Enemies
+        public const string IMG_ENEMY_BASIC = "IMG_ENEMY_BASIC";
+        public const string IMG_ENEMY_BOSS = "IMG_ENEMY_BOSS";
+
+        // Image Keys - UI
+        public const string IMG_UI_BUTTON = "IMG_UI_BUTTON";
+        public const string IMG_UI_HEALTHBAR = "IMG_UI_HEALTHBAR";
+
+        // Image Keys - Prologue CG
+        public const string CG_01 = "CG_01";
+        public const string CG_02 = "CG_02";
+        public const string CG_03 = "CG_03";
+        public const string CG_04 = "CG_04";
+        public const string CG_05 = "CG_05";
+        public const string CG_06 = "CG_06";
+        public const string CG_07 = "CG_07";
+        public const string CG_08 = "CG_08";
+        public const string CG_09 = "CG_09";
+        public const string CG_10 = "CG_10";
+        public const string CG_11 = "CG_11";
+        public const string CG_12 = "CG_12";
+        public const string CG_13 = "CG_13";
+
+        // Audio Keys - SFX
+        public const string SFX_JUMP = "SFX_JUMP";
+        public const string SFX_CLICK = "SFX_CLICK";
+        public const string SFX_HIT = "SFX_HIT";
+        public const string SFX_DEATH = "SFX_DEATH";
+        public const string SFX_CG_CLICK = "SFX_CG_CLICK";
+        public const string SFX_CG_END = "SFX_CG_END";
+        public const string SFX_CG_ENTER = "SFX_CG_ENTER";
+
+        // Audio Keys - Music
+        public const string MUSIC_MENU = "MUSIC_MENU";
+        public const string MUSIC_LEVEL1 = "MUSIC_LEVEL1";
+        public const string MUSIC_BOSS = "MUSIC_BOSS";
+        public const string MUSIC_CG_EVENT = "MUSIC_CG_EVENT";
+
+        // Language
+        public const string LANG_EN = "en";
+        public const string LANG_PH = "ph";
+    }
+}

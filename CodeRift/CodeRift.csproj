@@ -9,16 +9,23 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Assets\Images\backgrounds\" />
     <Folder Include="Assets\Images\player\" />
     <Folder Include="Assets\Images\enemies\" />
-    <Folder Include="Assets\Images\ui\" />
     <Folder Include="Assets\Audio\sfx\" />
     <Folder Include="Assets\Audio\music\" />
     <Folder Include="Core\" />
     <Folder Include="Entities\" />
     <Folder Include="Managers\" />
     <Folder Include="Utils\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\**\*.*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Utils\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
