@@ -1,4 +1,4 @@
-# ⚔️ Code Rift: Elias and the Great Compiler
+# ⚔️ Code Rift: 
 
 **Code Rift** is a story-driven educational RPG built in C# WinForms. Players take on the role of **Elias**, an apprentice of the Syntax Sanctum, as he journeys through a world corrupted by nonsensical code to defeat the **Null King** and restore the **Great Compiler**.
 
