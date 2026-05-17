@@ -22,6 +22,7 @@ namespace CodeRift.Core
             (Constants.IMG_ENEMY_BOSS, Path.Combine("Assets", "Images", "enemies", "boss.png")),
             (Constants.IMG_UI_BUTTON, Path.Combine("Assets", "Images", "ui", "button_hover.png")),
             (Constants.IMG_UI_HEALTHBAR, Path.Combine("Assets", "Images", "ui", "healthbar.png")),
+            ("IMG_UI_DIALOGUE", Path.Combine("Assets", "Images", "ui", "dialogue_box.png")),
             (Constants.CG_01, Path.Combine("Assets", "Images", "prologue", "scene_1.jpeg")),
             (Constants.CG_02, Path.Combine("Assets", "Images", "prologue", "scene_2.jpeg")),
             (Constants.CG_03, Path.Combine("Assets", "Images", "prologue", "scene_3.jpeg")),

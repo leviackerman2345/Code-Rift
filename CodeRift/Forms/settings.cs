@@ -228,5 +228,14 @@ namespace CodeRift.Forms
             btnEnglish.BackColor = !isFilipino ? matrixGreen : Color.Black;
             btnEnglish.ForeColor = !isFilipino ? Color.Black : matrixGreen;
         }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == Keys.Enter || keyData == Keys.Space)
+            {
+                return true;
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
     }
 }

@@ -29,7 +29,8 @@ namespace CodeRift.Managers
         private readonly Dictionary<string, string> _uiSprites = new(StringComparer.OrdinalIgnoreCase)
         {
             { Constants.IMG_UI_BUTTON, @"Assets\Images\ui\button_hover.png" },
-            { Constants.IMG_UI_HEALTHBAR, @"Assets\Images\ui\healthbar.png" }
+            { Constants.IMG_UI_HEALTHBAR, @"Assets\Images\ui\healthbar.png" },
+            { Constants.IMG_UI_DIALOGUE, @"Assets\Images\ui\dialogue_box.png" }
         };
         private readonly Dictionary<string, string> _cgImages = new(StringComparer.OrdinalIgnoreCase)
         {

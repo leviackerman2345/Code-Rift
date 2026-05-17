@@ -145,5 +145,14 @@ namespace CodeRift
             _titleImage?.Dispose();
             base.OnFormClosed(e);
         }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == Keys.Enter || keyData == Keys.Space)
+            {
+                return true;
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
     }
 }

@@ -1,3 +1,4 @@
+
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -13,12 +14,25 @@ namespace CodeRift.Forms
         private Image? _hoverImage;
 
         public menu()
+
         {
             InitializeComponent();
             LoadAssets();
             SetupFullScreen();
             SetupButtonHovers();
             ApplyLanguage();
+            btnPlay.Click += btnPlay_Click;
+        }
+
+        private void btnPlay_Click(object sender, EventArgs e)
+        {
+            this.Hide();
+            PrologueForm prologue = new PrologueForm();
+            prologue.FormClosed += (s, args) => this.Show(); // Show menu again when prologue/game ends? Or close menu?
+            // Usually, after epilogue, we return to menu. 
+            // The prompt says "After the final dialogue line, show a 'Return to Main Menu' button or transition back to the main menu form".
+            // So keeping menu hidden and showing it again on close is correct.
+            prologue.Show();
         }
 
         private void SetupButtonHovers()
@@ -175,9 +189,18 @@ namespace CodeRift.Forms
             }
         }
 
+        private void btnLevels_Click(object sender, EventArgs e)
+        {
+            this.Hide();
+            LevelsMenuForm levelsMenu = new LevelsMenuForm();
+            levelsMenu.FormClosed += (s, args) => this.Show();
+            levelsMenu.Show();
+        }
+
         public void ApplyLanguage()
         {
             btnPlay.Text = $"[{LanguageManager.Instance.Get("menu_play").ToUpperInvariant()}]";
+            btnLevels.Text = "[LEVELS]";
             btnSettings.Text = $"[{LanguageManager.Instance.Get("menu_settings").ToUpperInvariant()}]";
             btnCredits.Text = $"[{LanguageManager.Instance.Get("menu_credits").ToUpperInvariant()}]";
             btnExit.Text = $"[{LanguageManager.Instance.Get("menu_quit").ToUpperInvariant()}]";
@@ -186,6 +209,16 @@ namespace CodeRift.Forms
         private void menu_Load(object sender, EventArgs e)
         {
             ApplyLanguage();
+        }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            // Ignore Enter and Space keys to prevent accidental activation of focused buttons
+            if (keyData == Keys.Enter || keyData == Keys.Space)
+            {
+                return true;
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
         }
     }
 }

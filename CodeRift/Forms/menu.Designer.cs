@@ -35,6 +35,7 @@ namespace CodeRift.Forms
             titleBox = new PictureBox();
             buttonContainer = new Panel();
             btnPlay = new Button();
+            btnLevels = new Button();
             btnSettings = new Button();
             btnCredits = new Button();
             btnExit = new Button();
@@ -56,12 +57,13 @@ namespace CodeRift.Forms
             // 
             buttonContainer.BackColor = Color.Transparent;
             buttonContainer.Controls.Add(btnPlay);
+            buttonContainer.Controls.Add(btnLevels);
             buttonContainer.Controls.Add(btnSettings);
             buttonContainer.Controls.Add(btnCredits);
             buttonContainer.Controls.Add(btnExit);
             buttonContainer.Location = new Point(390, 380);
             buttonContainer.Name = "buttonContainer";
-            buttonContainer.Size = new Size(500, 320);
+            buttonContainer.Size = new Size(500, 400);
             buttonContainer.TabIndex = 1;
             // 
             // btnPlay
@@ -81,6 +83,24 @@ namespace CodeRift.Forms
             btnPlay.Text = "[PLAY]";
             btnPlay.UseVisualStyleBackColor = false;
             // 
+            // btnLevels
+            // 
+            btnLevels.BackColor = Color.Black;
+            btnLevels.FlatAppearance.BorderColor = Color.FromArgb(0, 255, 65);
+            btnLevels.FlatAppearance.BorderSize = 2;
+            btnLevels.FlatAppearance.MouseDownBackColor = Color.FromArgb(26, 107, 26);
+            btnLevels.FlatAppearance.MouseOverBackColor = Color.Black;
+            btnLevels.FlatStyle = FlatStyle.Flat;
+            btnLevels.Font = new Font("Courier New", 18F, FontStyle.Bold);
+            btnLevels.ForeColor = Color.FromArgb(0, 255, 65);
+            btnLevels.Location = new Point(50, 80);
+            btnLevels.Name = "btnLevels";
+            btnLevels.Size = new Size(400, 60);
+            btnLevels.TabIndex = 1;
+            btnLevels.Text = "[LEVELS]";
+            btnLevels.UseVisualStyleBackColor = false;
+            btnLevels.Click += btnLevels_Click;
+            // 
             // btnSettings
             // 
             btnSettings.BackColor = Color.Black;
@@ -91,10 +111,10 @@ namespace CodeRift.Forms
             btnSettings.FlatStyle = FlatStyle.Flat;
             btnSettings.Font = new Font("Courier New", 18F, FontStyle.Bold);
             btnSettings.ForeColor = Color.FromArgb(0, 255, 65);
-            btnSettings.Location = new Point(50, 80);
+            btnSettings.Location = new Point(50, 160);
             btnSettings.Name = "btnSettings";
             btnSettings.Size = new Size(400, 60);
-            btnSettings.TabIndex = 1;
+            btnSettings.TabIndex = 2;
             btnSettings.Text = "[SETTINGS]";
             btnSettings.UseVisualStyleBackColor = false;
             btnSettings.Click += btnSettings_Click;
@@ -109,10 +129,10 @@ namespace CodeRift.Forms
             btnCredits.FlatStyle = FlatStyle.Flat;
             btnCredits.Font = new Font("Courier New", 18F, FontStyle.Bold);
             btnCredits.ForeColor = Color.FromArgb(0, 255, 65);
-            btnCredits.Location = new Point(50, 160);
+            btnCredits.Location = new Point(50, 240);
             btnCredits.Name = "btnCredits";
             btnCredits.Size = new Size(400, 60);
-            btnCredits.TabIndex = 2;
+            btnCredits.TabIndex = 3;
             btnCredits.Text = "[CREDITS]";
             btnCredits.UseVisualStyleBackColor = false;
             btnCredits.Click += btnCredits_Click;
@@ -127,10 +147,10 @@ namespace CodeRift.Forms
             btnExit.FlatStyle = FlatStyle.Flat;
             btnExit.Font = new Font("Courier New", 18F, FontStyle.Bold);
             btnExit.ForeColor = Color.FromArgb(0, 255, 65);
-            btnExit.Location = new Point(50, 240);
+            btnExit.Location = new Point(50, 320);
             btnExit.Name = "btnExit";
             btnExit.Size = new Size(400, 60);
-            btnExit.TabIndex = 3;
+            btnExit.TabIndex = 4;
             btnExit.Text = "[EXIT]";
             btnExit.UseVisualStyleBackColor = false;
             btnExit.Click += btnExit_Click;
@@ -160,6 +180,7 @@ namespace CodeRift.Forms
         private System.Windows.Forms.PictureBox titleBox;
         private System.Windows.Forms.Panel buttonContainer;
         private System.Windows.Forms.Button btnPlay;
+        private System.Windows.Forms.Button btnLevels;
         private System.Windows.Forms.Button btnSettings;
         private System.Windows.Forms.Button btnCredits;
         private System.Windows.Forms.Button btnExit;

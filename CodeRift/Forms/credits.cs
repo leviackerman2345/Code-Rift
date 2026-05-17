@@ -254,5 +254,14 @@ namespace CodeRift.Forms
             _creditsScrollTimer.Stop();
             base.OnFormClosing(e);
         }
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == Keys.Enter || keyData == Keys.Space)
+            {
+                return true;
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
     }
 }

@@ -25,6 +25,7 @@ namespace CodeRift.Utils
         // Image Keys - UI
         public const string IMG_UI_BUTTON = "IMG_UI_BUTTON";
         public const string IMG_UI_HEALTHBAR = "IMG_UI_HEALTHBAR";
+        public const string IMG_UI_DIALOGUE = "IMG_UI_DIALOGUE";
 
         // Image Keys - Prologue CG
         public const string CG_01 = "CG_01";
