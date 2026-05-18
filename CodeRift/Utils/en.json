@@ -4,5 +4,22 @@
     "menu_credits"  : "Credits",
     "menu_quit"     : "Quit",
     "loading"       : "Loading...",
-    "loading_done"  : "All assets loaded."
+    "loading_done"  : "All assets loaded.",
+    "back": "[BACK]",
+    "continue": "CONTINUE",
+    "execute_code": "EXECUTE CODE",
+    "victory": "VICTORY",
+    "defeated": "DEFEATED",
+    "try_again": "Try Again",
+    "levels": "Levels",
+    "main_menu": "Main Menu",
+    "proceed_next": "Proceed to Next Level",
+    "continue_epilogue": "Continue to Epilogue",
+    "system_cleansed": "SYSTEM CLEANSED - VICTORY",
+    "settings_title": "terminal — 80x24",
+    "settings_volume": "root@coderift:~/volume$",
+    "settings_subtitles": "root@coderift:~/subtitles$",
+    "settings_exit": "[ EXIT_CONFIG ]",
+    "lang_ph": "FILIPINO",
+    "lang_en": "ENGLISH"
 }

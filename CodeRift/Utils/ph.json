@@ -4,5 +4,22 @@
     "menu_credits"  : "Mga Kredito",
     "menu_quit"     : "Huminto",
     "loading"       : "Naglo-load...",
-    "loading_done"  : "Lahat ng assets ay na-load na."
+    "loading_done"  : "Lahat ng assets ay na-load na.",
+    "back": "[BUMALIK]",
+    "continue": "MAGPATULOY",
+    "execute_code": "I-EXECUTE ANG CODE",
+    "victory": "TAGUMPAY",
+    "defeated": "TALO",
+    "try_again": "Subukan Muli",
+    "levels": "Mga Level",
+    "main_menu": "Main Menu",
+    "proceed_next": "Magpatuloy sa Susunod na Level",
+    "continue_epilogue": "Magpatuloy sa Epilogo",
+    "system_cleansed": "SYSTEM CLEANSED - TAGUMPAY",
+    "settings_title": "terminal — 80x24",
+    "settings_volume": "root@coderift:~/volume$",
+    "settings_subtitles": "root@coderift:~/subtitles$",
+    "settings_exit": "[ EXIT_CONFIG ]",
+    "lang_ph": "FILIPINO",
+    "lang_en": "ENGLISH"
 }

@@ -8,8 +8,9 @@ namespace CodeRift.Levels
         public Level5Form()
         {
             InitializeComponent();
+            CurrentLevel = 5;
             LevelName = "Level 5: The Null King";
-            UpdateUI();
+            SetupBaseForm();
         }
 
         protected override void TransitionToNext()

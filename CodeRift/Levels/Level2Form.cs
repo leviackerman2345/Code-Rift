@@ -7,8 +7,9 @@ namespace CodeRift.Levels
         public Level2Form()
         {
             InitializeComponent();
+            CurrentLevel = 2;
             LevelName = "Level 2: VoidCrawler";
-            UpdateUI();
+            SetupBaseForm();
         }
 
         protected override void TransitionToNext()

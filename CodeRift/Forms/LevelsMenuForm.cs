@@ -29,36 +29,32 @@ namespace CodeRift.Forms
             lblTitle.BackColor = Color.Transparent;
             lblTitle.TextAlign = ContentAlignment.MiddleCenter;
 
+            // Register handlers once
+            btnLevel1.Click += (s, e) => LaunchLevel(new Levels.Level1Form());
+            btnLevel2.Click += (s, e) => LaunchLevel(new Levels.Level2Form());
+            btnLevel3.Click += (s, e) => LaunchLevel(new Levels.Level3Form());
+            btnLevel4.Click += (s, e) => LaunchLevel(new Levels.Level4Form());
+            btnLevel5.Click += (s, e) => LaunchLevel(new Levels.Level5Form());
+            btnBack.Click += (s, e) => this.Close();
+
             UpdateLevelButtons();
             StyleLevelButton(btnBack, "[BACK]");
-            btnBack.Click += (s, e) => this.Close();
         }
 
         private void UpdateLevelButtons()
         {
-            var pm = ProgressManager.Instance;
-
-            SetupButton(btnLevel1, 1, "LEVEL 1: LOOPS", () => LaunchLevel(new Levels.Level1Form()));
-            SetupButton(btnLevel2, 2, "LEVEL 2: METHODS", () => LaunchLevel(new Levels.Level2Form()));
-            SetupButton(btnLevel3, 3, "LEVEL 3: STRINGS", () => LaunchLevel(new Levels.Level3Form()));
-            SetupButton(btnLevel4, 4, "LEVEL 4: ARRAYS", () => LaunchLevel(new Levels.Level4Form()));
-            SetupButton(btnLevel5, 5, "LEVEL 5: CLASSES", () => LaunchLevel(new Levels.Level5Form()));
+            SetupButtonState(btnLevel1, 1, "LEVEL 1: LOOPS");
+            SetupButtonState(btnLevel2, 2, "LEVEL 2: METHODS");
+            SetupButtonState(btnLevel3, 3, "LEVEL 3: STRINGS");
+            SetupButtonState(btnLevel4, 4, "LEVEL 4: ARRAYS");
+            SetupButtonState(btnLevel5, 5, "LEVEL 5: CLASSES");
         }
 
-        private void SetupButton(Button btn, int level, string text, Action launchAction)
+        private void SetupButtonState(Button btn, int level, string text)
         {
             bool isUnlocked = ProgressManager.Instance.IsLevelUnlocked(level);
             StyleLevelButton(btn, isUnlocked ? text : "[LOCKED]");
             btn.Enabled = isUnlocked;
-            
-            // Remove existing handlers to avoid duplicates if UpdateLevelButtons is called multiple times
-            // However, since we are creating new form instances, we'll just set it once.
-            // If we were to re-call UpdateLevelButtons, we'd need to be more careful.
-            btn.Click -= null; // This doesn't actually work in C#, but for now SetupForm only calls it once.
-            if (isUnlocked)
-            {
-                btn.Click += (s, e) => launchAction();
-            }
         }
 
         private void StyleLevelButton(Button btn, string text)

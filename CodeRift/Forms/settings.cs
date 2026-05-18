@@ -219,14 +219,23 @@ namespace CodeRift.Forms
 
         private void ApplyLanguageSelection()
         {
+            var lm = LanguageManager.Instance;
             Color matrixGreen = Color.FromArgb(0, 255, 65);
-            bool isFilipino = LanguageManager.Instance.CurrentLanguage == Constants.LANG_PH;
+            bool isFilipino = lm.CurrentLanguage == Constants.LANG_PH;
 
             btnFilipino.BackColor = isFilipino ? matrixGreen : Color.Black;
             btnFilipino.ForeColor = isFilipino ? Color.Black : matrixGreen;
 
             btnEnglish.BackColor = !isFilipino ? matrixGreen : Color.Black;
             btnEnglish.ForeColor = !isFilipino ? Color.Black : matrixGreen;
+
+            // Apply translations
+            lblTitle.Text = lm.Get("settings_title");
+            lblVolume.Text = lm.Get("settings_volume");
+            lblSubtitles.Text = lm.Get("settings_subtitles");
+            btnBack.Text = lm.Get("settings_exit");
+            btnFilipino.Text = lm.Get("lang_ph");
+            btnEnglish.Text = lm.Get("lang_en");
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

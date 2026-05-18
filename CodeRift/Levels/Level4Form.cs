@@ -7,8 +7,9 @@ namespace CodeRift.Levels
         public Level4Form()
         {
             InitializeComponent();
+            CurrentLevel = 4;
             LevelName = "Level 4: ArrayWorm";
-            UpdateUI();
+            SetupBaseForm();
         }
 
         protected override void TransitionToNext()

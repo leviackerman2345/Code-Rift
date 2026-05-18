@@ -7,8 +7,9 @@ namespace CodeRift.Levels
         public Level1Form()
         {
             InitializeComponent();
+            CurrentLevel = 1;
             LevelName = "Level 1: LoopBug";
-            UpdateUI();
+            SetupBaseForm();
         }
 
         protected override void TransitionToNext()

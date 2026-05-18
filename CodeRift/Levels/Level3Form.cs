@@ -7,8 +7,9 @@ namespace CodeRift.Levels
         public Level3Form()
         {
             InitializeComponent();
+            CurrentLevel = 3;
             LevelName = "Level 3: StringCorruptor";
-            UpdateUI();
+            SetupBaseForm();
         }
 
         protected override void TransitionToNext()
