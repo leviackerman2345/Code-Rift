@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Windows.Forms;
 using CodeRift.Managers;
 using CodeRift.Utils;
@@ -10,6 +11,15 @@ namespace CodeRift.Forms
     public partial class PrologueForm : Form
     {
         private int _currentStep = 0;
+        private float _alpha = 0f;
+        private System.Windows.Forms.Timer _fadeTimer;
+        private System.Windows.Forms.Timer _typewriterTimer;
+        private bool _isFading = false;
+        private bool _isFadingOut = false;
+        private Image _currentImage = null;
+        private PrologueStep _pendingStep;
+        private string _targetText = "";
+        private int _visibleChars = 0;
 
         private struct PrologueStep
         {
@@ -23,8 +33,95 @@ namespace CodeRift.Forms
         {
             InitializeComponent();
             InitializeScript();
+            SetupFadeTimer();
+            SetupTypewriterTimer();
             SetupForm();
-            UpdateScene();
+            
+            if (_steps.Count > 0)
+            {
+                _pendingStep = _steps[0];
+                StartFadeIn();
+            }
+        }
+
+        private void SetupFadeTimer()
+        {
+            _fadeTimer = new System.Windows.Forms.Timer();
+            _fadeTimer.Interval = 16; // ~60 FPS
+            _fadeTimer.Tick += FadeTimer_Tick;
+        }
+
+        private void SetupTypewriterTimer()
+        {
+            _typewriterTimer = new System.Windows.Forms.Timer();
+            _typewriterTimer.Interval = 30; // 30ms per character
+            _typewriterTimer.Tick += TypewriterTimer_Tick;
+        }
+
+        private void StartFadeIn()
+        {
+            _currentImage = ImageManager.Instance.GetImage(_pendingStep.ImageKey);
+            StartTypewriter(_pendingStep.Text);
+            _alpha = 0f;
+            _isFading = true;
+            _isFadingOut = false;
+            _fadeTimer.Start();
+        }
+
+        private void StartFadeOut(PrologueStep nextStep)
+        {
+            _pendingStep = nextStep;
+            _isFading = true;
+            _isFadingOut = true;
+            _fadeTimer.Start();
+        }
+
+        private void FadeTimer_Tick(object sender, EventArgs e)
+        {
+            if (_isFadingOut)
+            {
+                _alpha -= 0.05f;
+                if (_alpha <= 0)
+                {
+                    _alpha = 0;
+                    _isFadingOut = false;
+                    _currentImage = ImageManager.Instance.GetImage(_pendingStep.ImageKey);
+                    StartTypewriter(_pendingStep.Text);
+                    AudioManager.Instance.PlaySFX(Constants.SFX_CG_CLICK);
+                }
+            }
+            else
+            {
+                _alpha += 0.05f;
+                if (_alpha >= 1.0f)
+                {
+                    _alpha = 1.0f;
+                    _isFading = false;
+                    _fadeTimer.Stop();
+                }
+            }
+            this.Invalidate();
+        }
+
+        private void TypewriterTimer_Tick(object sender, EventArgs e)
+        {
+            if (_visibleChars < _targetText.Length)
+            {
+                _visibleChars++;
+                dialogueLabel.Text = _targetText.Substring(0, _visibleChars);
+            }
+            else
+            {
+                _typewriterTimer.Stop();
+            }
+        }
+
+        private void StartTypewriter(string text)
+        {
+            _targetText = text;
+            _visibleChars = 0;
+            dialogueLabel.Text = "";
+            _typewriterTimer.Start();
         }
 
         private void InitializeScript()
@@ -146,22 +243,65 @@ namespace CodeRift.Forms
             StyleNavigationButton(btnSkip);
             btnSkip.TabStop = false;
             this.Click += dialogueBox_Click; // Allow clicking anywhere on the background to progress
+            this.FormClosing += (s, e) => { 
+                _fadeTimer?.Stop(); _fadeTimer?.Dispose(); 
+                _typewriterTimer?.Stop(); _typewriterTimer?.Dispose();
+            };
             this.Focus();
         }
 
         private void UpdateScene()
         {
+            if (_isFading) return; // Prevent advancing while transitioning
+
             if (_currentStep < _steps.Count)
             {
                 var step = _steps[_currentStep];
-                this.BackgroundImage = ImageManager.Instance.GetImage(step.ImageKey);
-                this.BackgroundImageLayout = ImageLayout.Stretch;
-                dialogueLabel.Text = step.Text;
-                AudioManager.Instance.PlaySFX(Constants.SFX_CG_CLICK);
+                Image nextImg = ImageManager.Instance.GetImage(step.ImageKey);
+
+                if (_currentImage != nextImg)
+                {
+                    StartFadeOut(step);
+                }
+                else
+                {
+                    StartTypewriter(step.Text);
+                    AudioManager.Instance.PlaySFX(Constants.SFX_CG_CLICK);
+                }
             }
             else
             {
                 TransitionToLevelsMenu();
+            }
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            base.OnPaintBackground(e);
+
+            if (_currentImage != null)
+            {
+                DrawImageWithAlpha(e.Graphics, _currentImage, this.ClientRectangle, _alpha);
+            }
+        }
+
+        private void DrawImageWithAlpha(Graphics g, Image img, Rectangle rect, float alpha)
+        {
+            try
+            {
+                ColorMatrix cm = new ColorMatrix();
+                cm.Matrix33 = alpha;
+
+                using (ImageAttributes ia = new ImageAttributes())
+                {
+                    ia.SetColorMatrix(cm);
+                    g.DrawImage(img, rect, 0, 0, img.Width, img.Height, GraphicsUnit.Pixel, ia);
+                }
+            }
+            catch (Exception)
+            {
+                // Fallback to normal drawing if transparency fails
+                g.DrawImage(img, rect);
             }
         }
 
@@ -197,6 +337,17 @@ namespace CodeRift.Forms
 
         private void AdvanceDialogue()
         {
+            if (_isFading) return;
+            
+            if (_typewriterTimer.Enabled)
+            {
+                // If typing, finish it immediately
+                _typewriterTimer.Stop();
+                _visibleChars = _targetText.Length;
+                dialogueLabel.Text = _targetText;
+                return;
+            }
+
             _currentStep++;
             UpdateScene();
         }

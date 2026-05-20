@@ -9,6 +9,10 @@ namespace CodeRift.Forms
     public partial class EpilogueForm : Form
     {
         private int _currentDialogue = 0;
+        private System.Windows.Forms.Timer _typewriterTimer;
+        private string _targetText = "";
+        private int _visibleChars = 0;
+
         private readonly string[] _dialogues = {
             "Epilogue — The Final Compilation",
             "After a long and devastating battle, Elias finally defeats the supreme Bug known as: The Null King.",
@@ -44,8 +48,37 @@ namespace CodeRift.Forms
         public EpilogueForm()
         {
             InitializeComponent();
+            SetupTypewriterTimer();
             SetupForm();
             UpdateDialogue();
+        }
+
+        private void SetupTypewriterTimer()
+        {
+            _typewriterTimer = new System.Windows.Forms.Timer();
+            _typewriterTimer.Interval = 30; // 30ms per character
+            _typewriterTimer.Tick += TypewriterTimer_Tick;
+        }
+
+        private void TypewriterTimer_Tick(object sender, EventArgs e)
+        {
+            if (_visibleChars < _targetText.Length)
+            {
+                _visibleChars++;
+                dialogueLabel.Text = _targetText.Substring(0, _visibleChars);
+            }
+            else
+            {
+                _typewriterTimer.Stop();
+            }
+        }
+
+        private void StartTypewriter(string text)
+        {
+            _targetText = text;
+            _visibleChars = 0;
+            dialogueLabel.Text = "";
+            _typewriterTimer.Start();
         }
 
         private void SetupForm()
@@ -96,6 +129,7 @@ namespace CodeRift.Forms
             }
 
             this.Click += dialogueBox_Click; // Allow clicking anywhere on the background to progress
+            this.FormClosing += (s, e) => { _typewriterTimer?.Stop(); _typewriterTimer?.Dispose(); };
             this.Focus();
         }
 
@@ -103,7 +137,7 @@ namespace CodeRift.Forms
         {
             if (_currentDialogue < _dialogues.Length)
             {
-                dialogueLabel.Text = _dialogues[_currentDialogue];
+                StartTypewriter(_dialogues[_currentDialogue]);
                 AudioManager.Instance.PlaySFX(Constants.SFX_CG_CLICK);
                 
                 if (_currentDialogue == _dialogues.Length - 1)
@@ -118,6 +152,15 @@ namespace CodeRift.Forms
 
         private void AdvanceDialogue()
         {
+            if (_typewriterTimer.Enabled)
+            {
+                // Instant complete current line
+                _typewriterTimer.Stop();
+                _visibleChars = _targetText.Length;
+                dialogueLabel.Text = _targetText;
+                return;
+            }
+
             if (_currentDialogue < _dialogues.Length - 1)
             {
                 _currentDialogue++;
