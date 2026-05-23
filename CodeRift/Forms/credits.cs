@@ -333,6 +333,11 @@ namespace CodeRift.Forms
             mainContainer.Invalidate();
         }
 
+        private void btnBack_MouseEnter(object? sender, EventArgs e)
+        {
+            AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
+        }
+
         private void btnBack_Click(object? sender, EventArgs e)
         {
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);

@@ -14,7 +14,8 @@ namespace CodeRift.Managers
         private readonly Dictionary<string, string> _sfx = new(StringComparer.OrdinalIgnoreCase)
         {
             { Constants.SFX_JUMP, @"Assets\Audio\sfx\jump.wav" },
-            { Constants.SFX_CLICK, @"Assets\Audio\sfx\click.wav" },
+            { Constants.SFX_CLICK, @"Assets\Audio\sfx\mouse click.mp3" },
+            { Constants.SFX_HOVER, @"Assets\Audio\sfx\hoverbtnsfx.mp3" },
             { Constants.SFX_HIT, @"Assets\Audio\sfx\hit.wav" },
             { Constants.SFX_DEATH, @"Assets\Audio\sfx\death.wav" }
         };
@@ -77,16 +78,35 @@ namespace CodeRift.Managers
 
         public void PlaySFX(string key)
         {
-            if (!_sounds.TryGetValue(key, out byte[]? bytes))
+            // Case 1: Preloaded WAV SFX
+            if (_sounds.TryGetValue(key, out byte[]? bytes))
             {
+                Task.Run(() =>
+                {
+                    using MemoryStream stream = new MemoryStream(bytes, writable: false);
+                    using SoundPlayer player = new SoundPlayer(stream);
+                    player.PlaySync();
+                });
                 return;
             }
 
-            Task.Run(() =>
+            // Case 2: File-based SFX (e.g. MP3)
+            string? path = null;
+            if (!_sfx.TryGetValue(key, out path))
             {
-                using MemoryStream stream = new MemoryStream(bytes, writable: false);
-                using SoundPlayer player = new SoundPlayer(stream);
-                player.PlaySync();
+                if (!_cgAudio.TryGetValue(key, out path)) return;
+            }
+
+            string resolvedPath = ResolvePath(path);
+            if (!File.Exists(resolvedPath)) return;
+
+            Task.Run(() => 
+            {
+                string alias = $"SFX_{key}_{Guid.NewGuid():N}";
+                mciSendString($"open \"{resolvedPath}\" type mpegvideo alias {alias}", null, 0, IntPtr.Zero);
+                mciSendString($"setaudio {alias} volume to {_globalVolume}", null, 0, IntPtr.Zero);
+                mciSendString($"play {alias} wait", null, 0, IntPtr.Zero);
+                mciSendString($"close {alias}", null, 0, IntPtr.Zero);
             });
         }
 

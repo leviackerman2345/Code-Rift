@@ -59,6 +59,7 @@ namespace CodeRift.Forms
                         btn.Click += (s, e) => AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
                         btn.MouseEnter += (s, e) =>
                         {
+                            AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
                             btn.ForeColor = Color.Black;
                             btn.FlatAppearance.BorderColor = Color.Black;
                             if (_hoverImage != null)

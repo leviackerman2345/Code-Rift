@@ -60,6 +60,7 @@ namespace CodeRift.Utils
         // Audio Keys - SFX
         public const string SFX_JUMP = "SFX_JUMP";
         public const string SFX_CLICK = "SFX_CLICK";
+        public const string SFX_HOVER = "SFX_HOVER";
         public const string SFX_HIT = "SFX_HIT";
         public const string SFX_DEATH = "SFX_DEATH";
         public const string SFX_CG_CLICK = "SFX_CG_CLICK";

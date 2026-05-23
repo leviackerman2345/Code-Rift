@@ -369,6 +369,7 @@ namespace CodeRift.Forms
         {
             if (sender is Button btn && btn.Enabled)
             {
+                AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
                 btn.BackColor = _accentColor;
                 btn.ForeColor = Color.Black;
                 btn.FlatAppearance.BorderColor = Color.Black;

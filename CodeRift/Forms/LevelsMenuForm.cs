@@ -101,6 +101,7 @@ namespace CodeRift.Forms
                     {
                         if (btn.Enabled)
                         {
+                            AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
                             var bgImg = ImageManager.Instance.GetImage(bgKey);
                             if (bgImg != null) 
                             {
@@ -123,6 +124,7 @@ namespace CodeRift.Forms
                     // Back button hover style (match main menu)
                     btn.MouseEnter += (s, e) => 
                     {
+                        AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
                         btn.ForeColor = Color.Black;
                         btn.FlatAppearance.BorderColor = Color.Black;
                         var hoverImage = ImageManager.Instance.GetImage(Constants.IMG_UI_BUTTON);

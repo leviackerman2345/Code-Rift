@@ -122,6 +122,7 @@ namespace CodeRift.Forms
             };
             btnOk.MouseEnter += (_, _) =>
             {
+                AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
                 btnOk.BackColor = _accentColor;
                 btnOk.ForeColor = Color.Black;
             };

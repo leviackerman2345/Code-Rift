@@ -781,6 +781,13 @@ namespace CodeRift.Forms
                     _cardIdByPicture[boxes[i]] = cardId;
                     _pictureByCardId[cardId] = boxes[i];
                     boxes[i].Cursor = Cursors.Hand;
+                    boxes[i].MouseEnter += (s, e) => {
+                        if (s is PictureBox pb && _cardIdByPicture.TryGetValue(pb, out int id)) {
+                            if (!_usedPlayerCards.Contains(id) && _battleEngine.CanSelectCard(id)) {
+                                AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
+                            }
+                        }
+                    };
                     boxes[i].Click += PlayerCard_Click;
                 }
             }
@@ -1186,6 +1193,11 @@ namespace CodeRift.Forms
                 imageAttributes);
 
             return darkened;
+        }
+
+        private void btnBack_MouseEnter(object sender, EventArgs e)
+        {
+            AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
         }
 
         private void btnBack_Click(object sender, EventArgs e)

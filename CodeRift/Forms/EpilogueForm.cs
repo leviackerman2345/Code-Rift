@@ -358,6 +358,7 @@ namespace CodeRift.Forms
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderColor = Color.FromArgb(0, 255, 65);
             button.FlatAppearance.MouseOverBackColor = Color.FromArgb(0, 255, 65);
+            button.MouseEnter += (s, e) => AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
             button.ForeColor = Color.FromArgb(0, 255, 65);
             button.BackColor = Color.Black;
             button.Font = new Font("Courier New", 12, FontStyle.Bold);

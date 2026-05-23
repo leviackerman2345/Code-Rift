@@ -49,7 +49,8 @@ namespace CodeRift.Core
 
         private static readonly (string Key, string Path)[] AudioAssets =
         {
-            (Constants.SFX_CLICK, Path.Combine("Assets", "Audio", "sfx", "click.wav")),
+            (Constants.SFX_CLICK, Path.Combine("Assets", "Audio", "sfx", "mouse click.mp3")),
+            (Constants.SFX_HOVER, Path.Combine("Assets", "Audio", "sfx", "hoverbtnsfx.mp3")),
             (Constants.SFX_CG_CLICK, Path.Combine("Assets", "Audio", "sfx", "cg_click.wav")),
             (Constants.SFX_CG_END, Path.Combine("Assets", "Audio", "sfx", "cg_end.wav")),
             (Constants.SFX_CG_ENTER, Path.Combine("Assets", "Audio", "sfx", "cg_enter.wav")),
