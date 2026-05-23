@@ -8,7 +8,7 @@ using CodeRift.Utils;
 
 namespace CodeRift.Forms
 {
-    // Settings modal: language toggle + local volume/mute UI state.
+    // Settings modal: language toggle, SFX toggle, and volume/mute UI state.
     public partial class SettingsForm : Form
     {
         private Image? _hoverImage;
@@ -34,6 +34,7 @@ namespace CodeRift.Forms
             SetupEvents();
             SetupCustomTitleBar();
             ApplyLanguageSelection();
+            UpdateSfxToggleButton();
         }
 
         private void SetupCustomTitleBar()
@@ -191,6 +192,10 @@ namespace CodeRift.Forms
                         {
                             ApplyLanguageSelection();
                         }
+                        else if (btn == btnSfxToggle)
+                        {
+                            UpdateSfxToggleButton();
+                        }
                         else
                         {
                             btn.ForeColor = matrixGreen;
@@ -233,6 +238,15 @@ namespace CodeRift.Forms
 
             btnFilipino.Click += (s, e) => SwitchLanguage(Constants.LANG_PH);
             btnEnglish.Click += (s, e) => SwitchLanguage(Constants.LANG_EN);
+            btnSfxToggle.Click += (s, e) => {
+                AudioManager.Instance.IsSFXEnabled = !AudioManager.Instance.IsSFXEnabled;
+                UpdateSfxToggleButton();
+
+                if (AudioManager.Instance.IsSFXEnabled)
+                {
+                    AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
+                }
+            };
         }
 
         private void SwitchLanguage(string languageCode)
@@ -261,6 +275,18 @@ namespace CodeRift.Forms
             btnEnglish.ForeColor = !isFilipino ? Color.Black : matrixGreen;
             btnEnglish.FlatAppearance.BorderSize = !isFilipino ? 0 : 2;
   
+        }
+
+        private void UpdateSfxToggleButton()
+        {
+            Color matrixGreen = Color.FromArgb(0, 255, 65);
+            bool enabled = AudioManager.Instance.IsSFXEnabled;
+
+            btnSfxToggle.Text = enabled ? "[ SFX_ON ]" : "[ SFX_OFF ]";
+            btnSfxToggle.BackColor = enabled ? matrixGreen : Color.Black;
+            btnSfxToggle.ForeColor = enabled ? Color.Black : matrixGreen;
+            btnSfxToggle.FlatAppearance.BorderColor = matrixGreen;
+            btnSfxToggle.FlatAppearance.BorderSize = enabled ? 0 : 2;
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

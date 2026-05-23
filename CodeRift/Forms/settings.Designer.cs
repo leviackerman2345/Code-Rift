@@ -25,6 +25,8 @@ namespace CodeRift.Forms
             this.btnEnglish = new System.Windows.Forms.Button();
             this.btnFilipino = new System.Windows.Forms.Button();
             this.lblSubtitles = new System.Windows.Forms.Label();
+            this.btnSfxToggle = new System.Windows.Forms.Button();
+            this.lblSfx = new System.Windows.Forms.Label();
             this.volSlider = new System.Windows.Forms.TrackBar();
             this.volIcon = new System.Windows.Forms.PictureBox();
             this.lblVolume = new System.Windows.Forms.Label();
@@ -66,6 +68,8 @@ namespace CodeRift.Forms
             this.terminalBody.Controls.Add(this.btnEnglish);
             this.terminalBody.Controls.Add(this.btnFilipino);
             this.terminalBody.Controls.Add(this.lblSubtitles);
+            this.terminalBody.Controls.Add(this.btnSfxToggle);
+            this.terminalBody.Controls.Add(this.lblSfx);
             this.terminalBody.Controls.Add(this.volSlider);
             this.terminalBody.Controls.Add(this.volIcon);
             this.terminalBody.Controls.Add(this.lblVolume);
@@ -83,7 +87,7 @@ namespace CodeRift.Forms
             this.btnBack.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnBack.Font = new System.Drawing.Font("Courier New", 12F, System.Drawing.FontStyle.Bold);
             this.btnBack.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(255)))), ((int)(((byte)(65)))));
-            this.btnBack.Location = new System.Drawing.Point(175, 380);
+            this.btnBack.Location = new System.Drawing.Point(175, 405);
             this.btnBack.Name = "btnBack";
             this.btnBack.Size = new System.Drawing.Size(200, 45);
             this.btnBack.TabIndex = 9;
@@ -92,7 +96,7 @@ namespace CodeRift.Forms
             // 
             // enFlagIcon
             // 
-            this.enFlagIcon.Location = new System.Drawing.Point(60, 269);
+            this.enFlagIcon.Location = new System.Drawing.Point(60, 309);
             this.enFlagIcon.Name = "enFlagIcon";
             this.enFlagIcon.Size = new System.Drawing.Size(32, 32);
             this.enFlagIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
@@ -101,7 +105,7 @@ namespace CodeRift.Forms
             // 
             // phFlagIcon
             // 
-            this.phFlagIcon.Location = new System.Drawing.Point(60, 219);
+            this.phFlagIcon.Location = new System.Drawing.Point(60, 259);
             this.phFlagIcon.Name = "phFlagIcon";
             this.phFlagIcon.Size = new System.Drawing.Size(32, 32);
             this.phFlagIcon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
@@ -116,7 +120,7 @@ namespace CodeRift.Forms
             this.btnEnglish.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnEnglish.Font = new System.Drawing.Font("Courier New", 12F, System.Drawing.FontStyle.Bold);
             this.btnEnglish.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(255)))), ((int)(((byte)(65)))));
-            this.btnEnglish.Location = new System.Drawing.Point(100, 265);
+            this.btnEnglish.Location = new System.Drawing.Point(100, 305);
             this.btnEnglish.Name = "btnEnglish";
             this.btnEnglish.Size = new System.Drawing.Size(360, 40);
             this.btnEnglish.TabIndex = 6;
@@ -131,7 +135,7 @@ namespace CodeRift.Forms
             this.btnFilipino.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnFilipino.Font = new System.Drawing.Font("Courier New", 12F, System.Drawing.FontStyle.Bold);
             this.btnFilipino.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(255)))), ((int)(((byte)(65)))));
-            this.btnFilipino.Location = new System.Drawing.Point(100, 215);
+            this.btnFilipino.Location = new System.Drawing.Point(100, 255);
             this.btnFilipino.Name = "btnFilipino";
             this.btnFilipino.Size = new System.Drawing.Size(360, 40);
             this.btnFilipino.TabIndex = 5;
@@ -142,11 +146,36 @@ namespace CodeRift.Forms
             // 
             this.lblSubtitles.Font = new System.Drawing.Font("Courier New", 12F, System.Drawing.FontStyle.Bold);
             this.lblSubtitles.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(255)))), ((int)(((byte)(65)))));
-            this.lblSubtitles.Location = new System.Drawing.Point(60, 180);
+            this.lblSubtitles.Location = new System.Drawing.Point(60, 220);
             this.lblSubtitles.Name = "lblSubtitles";
             this.lblSubtitles.Size = new System.Drawing.Size(250, 20);
             this.lblSubtitles.TabIndex = 4;
             this.lblSubtitles.Text = "root@coderift:~/subtitles$";
+            // 
+            // btnSfxToggle
+            // 
+            this.btnSfxToggle.BackColor = System.Drawing.Color.Black;
+            this.btnSfxToggle.FlatAppearance.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(255)))), ((int)(((byte)(65)))));
+            this.btnSfxToggle.FlatAppearance.BorderSize = 2;
+            this.btnSfxToggle.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSfxToggle.Font = new System.Drawing.Font("Courier New", 12F, System.Drawing.FontStyle.Bold);
+            this.btnSfxToggle.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(255)))), ((int)(((byte)(65)))));
+            this.btnSfxToggle.Location = new System.Drawing.Point(100, 165);
+            this.btnSfxToggle.Name = "btnSfxToggle";
+            this.btnSfxToggle.Size = new System.Drawing.Size(360, 40);
+            this.btnSfxToggle.TabIndex = 11;
+            this.btnSfxToggle.Text = "[ SFX_ON ]";
+            this.btnSfxToggle.UseVisualStyleBackColor = false;
+            // 
+            // lblSfx
+            // 
+            this.lblSfx.Font = new System.Drawing.Font("Courier New", 12F, System.Drawing.FontStyle.Bold);
+            this.lblSfx.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(255)))), ((int)(((byte)(65)))));
+            this.lblSfx.Location = new System.Drawing.Point(60, 135);
+            this.lblSfx.Name = "lblSfx";
+            this.lblSfx.Size = new System.Drawing.Size(250, 20);
+            this.lblSfx.TabIndex = 10;
+            this.lblSfx.Text = "root@coderift:~/sfx$";
             // 
             // volSlider
             // 
@@ -280,5 +309,7 @@ namespace CodeRift.Forms
         private System.Windows.Forms.PictureBox phFlagIcon;
         private System.Windows.Forms.PictureBox enFlagIcon;
         private System.Windows.Forms.Button btnBack;
+        private System.Windows.Forms.Label lblSfx;
+        private System.Windows.Forms.Button btnSfxToggle;
     }
 }

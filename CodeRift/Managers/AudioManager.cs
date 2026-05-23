@@ -35,8 +35,14 @@ namespace CodeRift.Managers
 
         private string? _currentMusicKey;
         private int _globalVolume = 800; // Default 80% (0-1000 scale for MCI)
+        private bool _sfxEnabled = true;
 
         public int VolumePercent => _globalVolume / 10;
+        public bool IsSFXEnabled 
+        { 
+            get => _sfxEnabled; 
+            set => _sfxEnabled = value; 
+        }
 
         [DllImport("winmm.dll")]
         private static extern long mciSendString(string strCommand, StringBuilder? strReturn, int iReturnLength, IntPtr hwndCallback);
@@ -78,6 +84,8 @@ namespace CodeRift.Managers
 
         public void PlaySFX(string key)
         {
+            if (!_sfxEnabled) return;
+
             // Case 1: Preloaded WAV SFX
             if (_sounds.TryGetValue(key, out byte[]? bytes))
             {
