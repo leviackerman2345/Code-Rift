@@ -233,7 +233,7 @@ namespace CodeRift.Forms
             this.lblTitle.Name = "lblTitle";
             this.lblTitle.Size = new System.Drawing.Size(548, 35);
             this.lblTitle.TabIndex = 0;
-            this.lblTitle.Text = "terminal — 80x24";
+            this.lblTitle.Text = "Coderift_settings";
             this.lblTitle.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // SettingsForm

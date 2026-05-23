@@ -11,6 +11,9 @@ namespace CodeRift.Utils
         public const string IMG_BG_MENU = "IMG_BG_MENU";
         public const string IMG_BG_LEVEL1 = "IMG_BG_LEVEL1";
         public const string IMG_BG_LEVEL2 = "IMG_BG_LEVEL2";
+        public const string IMG_BG_LEVEL3 = "IMG_BG_LEVEL3";
+        public const string IMG_BG_LEVEL4 = "IMG_BG_LEVEL4";
+        public const string IMG_BG_LEVEL5 = "IMG_BG_LEVEL5";
 
         // Image Keys - Player
         public const string IMG_PLAYER_IDLE = "IMG_PLAYER_IDLE";

@@ -160,6 +160,13 @@ namespace CodeRift.Forms
             {
                 if (ctrl is Button btn)
                 {
+                    btn.FlatStyle = FlatStyle.Flat;
+                    if (btn != btnFilipino && btn != btnEnglish)
+                    {
+                        btn.FlatAppearance.BorderSize = 2;
+                        btn.FlatAppearance.BorderColor = matrixGreen;
+                    }
+
                     btn.FlatAppearance.MouseOverBackColor = matrixGreen;
                     btn.MouseEnter += (s, e) => {
                         btn.ForeColor = Color.Black;
@@ -171,9 +178,16 @@ namespace CodeRift.Forms
                         }
                     };
                     btn.MouseLeave += (s, e) => {
-                        btn.ForeColor = matrixGreen;
-                        btn.FlatAppearance.BorderColor = matrixGreen;
                         btn.BackgroundImage = null;
+                        if (btn == btnFilipino || btn == btnEnglish)
+                        {
+                            ApplyLanguageSelection();
+                        }
+                        else
+                        {
+                            btn.ForeColor = matrixGreen;
+                            btn.FlatAppearance.BorderColor = matrixGreen;
+                        }
                     };
                 }
             }
@@ -229,9 +243,13 @@ namespace CodeRift.Forms
 
             btnFilipino.BackColor = isFilipino ? matrixGreen : Color.Black;
             btnFilipino.ForeColor = isFilipino ? Color.Black : matrixGreen;
+            btnFilipino.FlatAppearance.BorderSize = isFilipino ? 0 : 2;
+            
 
             btnEnglish.BackColor = !isFilipino ? matrixGreen : Color.Black;
             btnEnglish.ForeColor = !isFilipino ? Color.Black : matrixGreen;
+            btnEnglish.FlatAppearance.BorderSize = !isFilipino ? 0 : 2;
+  
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

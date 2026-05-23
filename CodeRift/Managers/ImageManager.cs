@@ -11,8 +11,11 @@ namespace CodeRift.Managers
         private readonly Dictionary<string, string> _backgrounds = new(StringComparer.OrdinalIgnoreCase)
         {
             { Constants.IMG_BG_MENU, @"Assets\Images\backgrounds\main_menu.png" },
-            { Constants.IMG_BG_LEVEL1, @"Assets\Images\backgrounds\level1.png" },
-            { Constants.IMG_BG_LEVEL2, @"Assets\Images\backgrounds\level2.png" }
+            { Constants.IMG_BG_LEVEL1, @"Assets\Images\backgrounds\level_background\level_1.png" },
+            { Constants.IMG_BG_LEVEL2, @"Assets\Images\backgrounds\level_background\level_2.png" },
+            { Constants.IMG_BG_LEVEL3, @"Assets\Images\backgrounds\level_background\level_3.png" },
+            { Constants.IMG_BG_LEVEL4, @"Assets\Images\backgrounds\level_background\level_4.png" },
+            { Constants.IMG_BG_LEVEL5, @"Assets\Images\backgrounds\level_background\level_5.png" }
         };
         private readonly Dictionary<string, string> _playerSprites = new(StringComparer.OrdinalIgnoreCase)
         {

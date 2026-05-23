@@ -137,10 +137,10 @@ namespace CodeRift
 
         private void TransitionToNextForm()
         {
-            this.Hide();
             // Navigation handoff: splash -> main menu.
             MenuForm mainMenu = new MenuForm();
             mainMenu.FormClosed += (s, args) => this.Close();
+            mainMenu.Shown += (s, args) => this.Hide();
             mainMenu.Show();
         }
 

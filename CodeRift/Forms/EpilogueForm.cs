@@ -160,7 +160,6 @@ namespace CodeRift.Forms
         private void ShowCreditsAndReturn()
         {
             // Ending route: epilogue -> credits -> signal levels menu to exit back to main menu.
-            this.Hide();
             CreditsForm creditsForm = new CreditsForm();
             creditsForm.FormClosed += (s, args) => 
             {
@@ -175,6 +174,7 @@ namespace CodeRift.Forms
                 }
                 this.Close(); 
             };
+            creditsForm.Shown += (s, args) => this.Hide();
             creditsForm.Show();
         }
 

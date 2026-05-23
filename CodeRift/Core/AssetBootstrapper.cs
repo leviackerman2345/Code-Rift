@@ -13,8 +13,11 @@ namespace CodeRift.Core
         private static readonly (string Key, string Path)[] ImageAssets =
         {
             (Constants.IMG_BG_MENU, Path.Combine("Assets", "Images", "backgrounds", "main_menu.png")),
-            (Constants.IMG_BG_LEVEL1, Path.Combine("Assets", "Images", "backgrounds", "level_background", "level_1.jpeg")),
-            (Constants.IMG_BG_LEVEL2, Path.Combine("Assets", "Images", "backgrounds", "level_background", "level_2.jpeg")),
+            (Constants.IMG_BG_LEVEL1, Path.Combine("Assets", "Images", "backgrounds", "level_background", "level_1.png")),
+            (Constants.IMG_BG_LEVEL2, Path.Combine("Assets", "Images", "backgrounds", "level_background", "level_2.png")),
+            (Constants.IMG_BG_LEVEL3, Path.Combine("Assets", "Images", "backgrounds", "level_background", "level_3.png")),
+            (Constants.IMG_BG_LEVEL4, Path.Combine("Assets", "Images", "backgrounds", "level_background", "level_4.png")),
+            (Constants.IMG_BG_LEVEL5, Path.Combine("Assets", "Images", "backgrounds", "level_background", "level_5.png")),
             (Constants.IMG_UI_BUTTON, Path.Combine("Assets", "Images", "ui", "button_hover.png")),
             ("IMG_UI_DIALOGUE", Path.Combine("Assets", "Images", "ui", "dialogue_box.png")),
             (Constants.CG_01, Path.Combine("Assets", "Images", "prologue", "scene_1.jpeg")),

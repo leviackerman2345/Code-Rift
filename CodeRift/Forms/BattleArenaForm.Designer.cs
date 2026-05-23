@@ -1,3 +1,7 @@
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
 namespace CodeRift.Forms
 {
     partial class BattleArenaForm
@@ -46,7 +50,8 @@ namespace CodeRift.Forms
             lblEnemyHPMax = new Label();
             pnlEnemyHealthBg = new Panel();
             pnlEnemyHealthFill = new Panel();
-            pnlBattleZone = new TableLayoutPanel();
+            pnlMainContent = new Panel();
+            pnlBattleZone = new Panel();
             picPlayerPortrait = new PictureBox();
             picEnemyPortrait = new PictureBox();
             pnlBottomZone = new TableLayoutPanel();
@@ -62,12 +67,14 @@ namespace CodeRift.Forms
             picEnemyCard3 = new PictureBox();
             picEnemyCard4 = new PictureBox();
             picEnemyCard5 = new PictureBox();
+
             pnlTitleBar.SuspendLayout();
             pnlHUDStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)picPlayerThumb).BeginInit();
             pnlPlayerHealthBg.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)picEnemyThumb).BeginInit();
             pnlEnemyHealthBg.SuspendLayout();
+            pnlMainContent.SuspendLayout();
             pnlBattleZone.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)picPlayerPortrait).BeginInit();
             ((System.ComponentModel.ISupportInitialize)picEnemyPortrait).BeginInit();
@@ -93,7 +100,6 @@ namespace CodeRift.Forms
             pnlTitleBar.Controls.Add(lblLevelTitle);
             pnlTitleBar.Dock = DockStyle.Top;
             pnlTitleBar.Location = new Point(0, 0);
-            pnlTitleBar.Margin = new Padding(4);
             pnlTitleBar.Name = "pnlTitleBar";
             pnlTitleBar.Size = new Size(1280, 58);
             pnlTitleBar.TabIndex = 1;
@@ -105,7 +111,6 @@ namespace CodeRift.Forms
             btnBack.Font = new Font("Courier New", 12F, FontStyle.Bold);
             btnBack.ForeColor = Color.White;
             btnBack.Location = new Point(16, 7);
-            btnBack.Margin = new Padding(4);
             btnBack.Name = "btnBack";
             btnBack.Size = new Size(120, 44);
             btnBack.TabIndex = 0;
@@ -119,7 +124,6 @@ namespace CodeRift.Forms
             lblLevelTitle.Font = new Font("Courier New", 14F, FontStyle.Bold);
             lblLevelTitle.ForeColor = Color.White;
             lblLevelTitle.Location = new Point(0, 0);
-            lblLevelTitle.Margin = new Padding(4, 0, 4, 0);
             lblLevelTitle.Name = "lblLevelTitle";
             lblLevelTitle.Size = new Size(1280, 58);
             lblLevelTitle.TabIndex = 1;
@@ -143,7 +147,6 @@ namespace CodeRift.Forms
             pnlHUDStrip.Controls.Add(pnlEnemyHealthBg);
             pnlHUDStrip.Dock = DockStyle.Top;
             pnlHUDStrip.Location = new Point(0, 58);
-            pnlHUDStrip.Margin = new Padding(4);
             pnlHUDStrip.Name = "pnlHUDStrip";
             pnlHUDStrip.Size = new Size(1280, 130);
             pnlHUDStrip.TabIndex = 2;
@@ -151,7 +154,6 @@ namespace CodeRift.Forms
             // picPlayerThumb
             // 
             picPlayerThumb.Location = new Point(20, 20);
-            picPlayerThumb.Margin = new Padding(4);
             picPlayerThumb.Name = "picPlayerThumb";
             picPlayerThumb.Size = new Size(80, 80);
             picPlayerThumb.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -164,7 +166,6 @@ namespace CodeRift.Forms
             lblPlayerName.Font = new Font("Courier New", 12F, FontStyle.Bold);
             lblPlayerName.ForeColor = Color.FromArgb(0, 255, 65);
             lblPlayerName.Location = new Point(110, 20);
-            lblPlayerName.Margin = new Padding(4, 0, 4, 0);
             lblPlayerName.Name = "lblPlayerName";
             lblPlayerName.Size = new Size(58, 18);
             lblPlayerName.TabIndex = 1;
@@ -176,7 +177,6 @@ namespace CodeRift.Forms
             lblPlayerHP.Font = new Font("Courier New", 22F, FontStyle.Bold);
             lblPlayerHP.ForeColor = Color.White;
             lblPlayerHP.Location = new Point(110, 75);
-            lblPlayerHP.Margin = new Padding(4, 0, 4, 0);
             lblPlayerHP.Name = "lblPlayerHP";
             lblPlayerHP.Size = new Size(69, 34);
             lblPlayerHP.TabIndex = 2;
@@ -188,7 +188,6 @@ namespace CodeRift.Forms
             lblPlayerHPMax.Font = new Font("Courier New", 10F);
             lblPlayerHPMax.ForeColor = Color.LightGray;
             lblPlayerHPMax.Location = new Point(175, 88);
-            lblPlayerHPMax.Margin = new Padding(4, 0, 4, 0);
             lblPlayerHPMax.Name = "lblPlayerHPMax";
             lblPlayerHPMax.Size = new Size(72, 17);
             lblPlayerHPMax.TabIndex = 3;
@@ -219,7 +218,6 @@ namespace CodeRift.Forms
             lblVS.Font = new Font("Courier New", 22F, FontStyle.Bold);
             lblVS.ForeColor = Color.White;
             lblVS.Location = new Point(615, 25);
-            lblVS.Margin = new Padding(4, 0, 4, 0);
             lblVS.Name = "lblVS";
             lblVS.Size = new Size(51, 34);
             lblVS.TabIndex = 5;
@@ -232,7 +230,6 @@ namespace CodeRift.Forms
             lblTimer.Font = new Font("Courier New", 14F);
             lblTimer.ForeColor = Color.White;
             lblTimer.Location = new Point(607, 70);
-            lblTimer.Margin = new Padding(4, 0, 4, 0);
             lblTimer.Name = "lblTimer";
             lblTimer.Size = new Size(65, 21);
             lblTimer.TabIndex = 6;
@@ -242,7 +239,6 @@ namespace CodeRift.Forms
             // 
             picEnemyThumb.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             picEnemyThumb.Location = new Point(1180, 20);
-            picEnemyThumb.Margin = new Padding(4);
             picEnemyThumb.Name = "picEnemyThumb";
             picEnemyThumb.Size = new Size(80, 80);
             picEnemyThumb.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -255,7 +251,6 @@ namespace CodeRift.Forms
             lblEnemyName.Font = new Font("Courier New", 12F, FontStyle.Bold);
             lblEnemyName.ForeColor = Color.FromArgb(0, 255, 65);
             lblEnemyName.Location = new Point(720, 20);
-            lblEnemyName.Margin = new Padding(4, 0, 4, 0);
             lblEnemyName.Name = "lblEnemyName";
             lblEnemyName.Size = new Size(450, 25);
             lblEnemyName.TabIndex = 10;
@@ -268,13 +263,12 @@ namespace CodeRift.Forms
             lblEnemyHP.Font = new Font("Courier New", 22F, FontStyle.Bold);
             lblEnemyHP.ForeColor = Color.White;
             lblEnemyHP.Location = new Point(1094, 75);
-            lblEnemyHP.Margin = new Padding(4, 0, 4, 0);
             lblEnemyHP.Name = "lblEnemyHP";
             lblEnemyHP.Size = new Size(78, 33);
             lblEnemyHP.TabIndex = 9;
             lblEnemyHP.Text = "100";
             lblEnemyHP.TextAlign = ContentAlignment.TopRight;
-            lblEnemyHP.Click += lblEnemyHP_Click;
+           
             // 
             // lblEnemyHPMax
             // 
@@ -283,7 +277,6 @@ namespace CodeRift.Forms
             lblEnemyHPMax.Font = new Font("Courier New", 10F);
             lblEnemyHPMax.ForeColor = Color.LightGray;
             lblEnemyHPMax.Location = new Point(1030, 88);
-            lblEnemyHPMax.Margin = new Padding(4, 0, 4, 0);
             lblEnemyHPMax.Name = "lblEnemyHPMax";
             lblEnemyHPMax.Size = new Size(72, 17);
             lblEnemyHPMax.TabIndex = 8;
@@ -308,44 +301,45 @@ namespace CodeRift.Forms
             pnlEnemyHealthFill.Size = new Size(450, 25);
             pnlEnemyHealthFill.TabIndex = 0;
             // 
+            // pnlMainContent
+            // 
+            pnlMainContent.BackColor = Color.Transparent;
+            pnlMainContent.Controls.Add(pnlBattleZone);
+            pnlMainContent.Dock = DockStyle.Fill;
+            pnlMainContent.Location = new Point(0, 188);
+            pnlMainContent.Name = "pnlMainContent";
+            pnlMainContent.Size = new Size(1280, 532);
+            pnlMainContent.TabIndex = 12;
+            // 
             // pnlBattleZone
             // 
             pnlBattleZone.BackColor = Color.Transparent;
-            pnlBattleZone.ColumnCount = 3;
-            pnlBattleZone.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            pnlBattleZone.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 1F));
-            pnlBattleZone.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            pnlBattleZone.Controls.Add(picPlayerPortrait, 0, 0);
-            pnlBattleZone.Controls.Add(picEnemyPortrait, 2, 0);
-            pnlBattleZone.Dock = DockStyle.Top;
-            pnlBattleZone.Location = new Point(0, 188);
-            pnlBattleZone.Margin = new Padding(4);
+            pnlBattleZone.Controls.Add(picPlayerPortrait);
+            pnlBattleZone.Controls.Add(picEnemyPortrait);
+            pnlBattleZone.Dock = DockStyle.Fill;
+            pnlBattleZone.Location = new Point(0, 0);
             pnlBattleZone.Name = "pnlBattleZone";
-            pnlBattleZone.RowCount = 1;
-            pnlBattleZone.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            pnlBattleZone.Size = new Size(1280, 320);
+            pnlBattleZone.Size = new Size(1280, 532);
             pnlBattleZone.TabIndex = 3;
             // 
             // picPlayerPortrait
             // 
-            picPlayerPortrait.Anchor = AnchorStyles.Right;
-            picPlayerPortrait.Location = new Point(439, 25);
-            picPlayerPortrait.Margin = new Padding(4, 4, 20, 4);
+            picPlayerPortrait.BackColor = Color.Transparent;
+            picPlayerPortrait.Location = new Point(-450, 200);
             picPlayerPortrait.Name = "picPlayerPortrait";
-            picPlayerPortrait.Size = new Size(180, 270);
-            picPlayerPortrait.SizeMode = PictureBoxSizeMode.StretchImage;
+            picPlayerPortrait.Size = new Size(450, 450);
+            picPlayerPortrait.SizeMode = PictureBoxSizeMode.Zoom;
             picPlayerPortrait.TabIndex = 0;
             picPlayerPortrait.TabStop = false;
             // 
             // picEnemyPortrait
             // 
-            picEnemyPortrait.Anchor = AnchorStyles.Left;
-            picEnemyPortrait.Location = new Point(660, 25);
-            picEnemyPortrait.Margin = new Padding(20, 4, 4, 4);
+            picEnemyPortrait.BackColor = Color.Transparent;
+            picEnemyPortrait.Location = new Point(1280, 200);
             picEnemyPortrait.Name = "picEnemyPortrait";
-            picEnemyPortrait.Size = new Size(180, 270);
-            picEnemyPortrait.SizeMode = PictureBoxSizeMode.StretchImage;
-            picEnemyPortrait.TabIndex = 2;
+            picEnemyPortrait.Size = new Size(450, 450);
+            picEnemyPortrait.SizeMode = PictureBoxSizeMode.Zoom;
+            picEnemyPortrait.TabIndex = 1;
             picEnemyPortrait.TabStop = false;
             // 
             // pnlBottomZone
@@ -357,12 +351,11 @@ namespace CodeRift.Forms
             pnlBottomZone.Controls.Add(flpPlayerCards, 0, 0);
             pnlBottomZone.Controls.Add(flpEnemyCards, 1, 0);
             pnlBottomZone.Dock = DockStyle.Bottom;
-            pnlBottomZone.Location = new Point(0, 495);
-            pnlBottomZone.Margin = new Padding(4);
+            pnlBottomZone.Location = new Point(0, 570);
             pnlBottomZone.Name = "pnlBottomZone";
             pnlBottomZone.RowCount = 1;
             pnlBottomZone.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            pnlBottomZone.Size = new Size(1280, 225);
+            pnlBottomZone.Size = new Size(1280, 150);
             pnlBottomZone.TabIndex = 4;
             // 
             // flpPlayerCards
@@ -374,8 +367,7 @@ namespace CodeRift.Forms
             flpPlayerCards.Controls.Add(picPlayerCard3);
             flpPlayerCards.Controls.Add(picPlayerCard4);
             flpPlayerCards.Controls.Add(picPlayerCard5);
-            flpPlayerCards.Location = new Point(40, 43);
-            flpPlayerCards.Margin = new Padding(40, 0, 0, 0);
+            flpPlayerCards.Location = new Point(40, 2);
             flpPlayerCards.Name = "flpPlayerCards";
             flpPlayerCards.Padding = new Padding(0, 5, 0, 0);
             flpPlayerCards.Size = new Size(494, 139);
@@ -385,7 +377,6 @@ namespace CodeRift.Forms
             // 
             picPlayerCard1.BorderStyle = BorderStyle.FixedSingle;
             picPlayerCard1.Location = new Point(0, 5);
-            picPlayerCard1.Margin = new Padding(0, 0, 11, 0);
             picPlayerCard1.Name = "picPlayerCard1";
             picPlayerCard1.Size = new Size(90, 134);
             picPlayerCard1.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -396,7 +387,6 @@ namespace CodeRift.Forms
             // 
             picPlayerCard2.BorderStyle = BorderStyle.FixedSingle;
             picPlayerCard2.Location = new Point(101, 5);
-            picPlayerCard2.Margin = new Padding(0, 0, 11, 0);
             picPlayerCard2.Name = "picPlayerCard2";
             picPlayerCard2.Size = new Size(90, 134);
             picPlayerCard2.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -407,7 +397,6 @@ namespace CodeRift.Forms
             // 
             picPlayerCard3.BorderStyle = BorderStyle.FixedSingle;
             picPlayerCard3.Location = new Point(202, 5);
-            picPlayerCard3.Margin = new Padding(0, 0, 11, 0);
             picPlayerCard3.Name = "picPlayerCard3";
             picPlayerCard3.Size = new Size(90, 134);
             picPlayerCard3.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -418,7 +407,6 @@ namespace CodeRift.Forms
             // 
             picPlayerCard4.BorderStyle = BorderStyle.FixedSingle;
             picPlayerCard4.Location = new Point(303, 5);
-            picPlayerCard4.Margin = new Padding(0, 0, 11, 0);
             picPlayerCard4.Name = "picPlayerCard4";
             picPlayerCard4.Size = new Size(90, 134);
             picPlayerCard4.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -429,7 +417,6 @@ namespace CodeRift.Forms
             // 
             picPlayerCard5.BorderStyle = BorderStyle.FixedSingle;
             picPlayerCard5.Location = new Point(404, 5);
-            picPlayerCard5.Margin = new Padding(0);
             picPlayerCard5.Name = "picPlayerCard5";
             picPlayerCard5.Size = new Size(90, 134);
             picPlayerCard5.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -445,8 +432,7 @@ namespace CodeRift.Forms
             flpEnemyCards.Controls.Add(picEnemyCard3);
             flpEnemyCards.Controls.Add(picEnemyCard4);
             flpEnemyCards.Controls.Add(picEnemyCard5);
-            flpEnemyCards.Location = new Point(735, 43);
-            flpEnemyCards.Margin = new Padding(0, 0, 40, 0);
+            flpEnemyCards.Location = new Point(735, 2);
             flpEnemyCards.Name = "flpEnemyCards";
             flpEnemyCards.Padding = new Padding(0, 5, 0, 0);
             flpEnemyCards.RightToLeft = RightToLeft.Yes;
@@ -457,7 +443,6 @@ namespace CodeRift.Forms
             // 
             picEnemyCard1.BorderStyle = BorderStyle.FixedSingle;
             picEnemyCard1.Location = new Point(404, 5);
-            picEnemyCard1.Margin = new Padding(11, 0, 0, 0);
             picEnemyCard1.Name = "picEnemyCard1";
             picEnemyCard1.Size = new Size(90, 134);
             picEnemyCard1.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -468,7 +453,6 @@ namespace CodeRift.Forms
             // 
             picEnemyCard2.BorderStyle = BorderStyle.FixedSingle;
             picEnemyCard2.Location = new Point(303, 5);
-            picEnemyCard2.Margin = new Padding(11, 0, 0, 0);
             picEnemyCard2.Name = "picEnemyCard2";
             picEnemyCard2.Size = new Size(90, 134);
             picEnemyCard2.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -479,7 +463,6 @@ namespace CodeRift.Forms
             // 
             picEnemyCard3.BorderStyle = BorderStyle.FixedSingle;
             picEnemyCard3.Location = new Point(202, 5);
-            picEnemyCard3.Margin = new Padding(11, 0, 0, 0);
             picEnemyCard3.Name = "picEnemyCard3";
             picEnemyCard3.Size = new Size(90, 134);
             picEnemyCard3.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -490,7 +473,6 @@ namespace CodeRift.Forms
             // 
             picEnemyCard4.BorderStyle = BorderStyle.FixedSingle;
             picEnemyCard4.Location = new Point(101, 5);
-            picEnemyCard4.Margin = new Padding(11, 0, 0, 0);
             picEnemyCard4.Name = "picEnemyCard4";
             picEnemyCard4.Size = new Size(90, 134);
             picEnemyCard4.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -501,7 +483,6 @@ namespace CodeRift.Forms
             // 
             picEnemyCard5.BorderStyle = BorderStyle.FixedSingle;
             picEnemyCard5.Location = new Point(0, 5);
-            picEnemyCard5.Margin = new Padding(11, 0, 0, 0);
             picEnemyCard5.Name = "picEnemyCard5";
             picEnemyCard5.Size = new Size(90, 134);
             picEnemyCard5.SizeMode = PictureBoxSizeMode.StretchImage;
@@ -514,12 +495,12 @@ namespace CodeRift.Forms
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(8, 13, 8);
             ClientSize = new Size(1280, 720);
+            Controls.Add(pnlMainContent);
             Controls.Add(pnlBottomZone);
-            Controls.Add(pnlBattleZone);
             Controls.Add(pnlHUDStrip);
             Controls.Add(pnlTitleBar);
+            DoubleBuffered = true;
             FormBorderStyle = FormBorderStyle.None;
-            Margin = new Padding(4);
             Name = "BattleArenaForm";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "Battle Arena";
@@ -531,6 +512,7 @@ namespace CodeRift.Forms
             pnlPlayerHealthBg.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)picEnemyThumb).EndInit();
             pnlEnemyHealthBg.ResumeLayout(false);
+            pnlMainContent.ResumeLayout(false);
             pnlBattleZone.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)picPlayerPortrait).EndInit();
             ((System.ComponentModel.ISupportInitialize)picEnemyPortrait).EndInit();
@@ -576,7 +558,7 @@ namespace CodeRift.Forms
         private System.Windows.Forms.Panel pnlEnemyHealthBg;
         private System.Windows.Forms.Panel pnlEnemyHealthFill;
         
-        private System.Windows.Forms.TableLayoutPanel pnlBattleZone;
+        private System.Windows.Forms.Panel pnlBattleZone;
         private System.Windows.Forms.PictureBox picPlayerPortrait;
         private System.Windows.Forms.PictureBox picEnemyPortrait;
         
@@ -593,5 +575,6 @@ namespace CodeRift.Forms
         private System.Windows.Forms.PictureBox picEnemyCard3;
         private System.Windows.Forms.PictureBox picEnemyCard4;
         private System.Windows.Forms.PictureBox picEnemyCard5;
+        private System.Windows.Forms.Panel pnlMainContent;
     }
 }

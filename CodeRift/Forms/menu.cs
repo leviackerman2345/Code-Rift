@@ -30,10 +30,10 @@ namespace CodeRift.Forms
         private void btnPlay_Click(object? sender, EventArgs e)
         {
             // Story route: menu -> prologue.
-            this.Hide();
             PrologueForm prologue = new PrologueForm();
             // When downstream flow closes, return to this menu.
             prologue.FormClosed += (s, args) => this.Show();
+            prologue.Shown += (s, args) => this.Hide();
             prologue.Show();
         }
 
@@ -46,6 +46,10 @@ namespace CodeRift.Forms
                 {
                     if (ctrl is Button btn)
                     {
+                        btn.FlatStyle = FlatStyle.Flat;
+                        btn.FlatAppearance.BorderSize = 2;
+                        btn.FlatAppearance.BorderColor = matrixGreen;
+                        
                         btn.FlatAppearance.MouseOverBackColor = matrixGreen;
                         btn.MouseEnter += (s, e) =>
                         {
@@ -164,9 +168,9 @@ namespace CodeRift.Forms
         private void btnLevels_Click(object? sender, EventArgs e)
         {
             // Direct route: menu -> levels.
-            this.Hide();
             LevelsMenuForm levelsMenu = new LevelsMenuForm();
             levelsMenu.FormClosed += (s, args) => this.Show();
+            levelsMenu.Shown += (s, args) => this.Hide();
             levelsMenu.Show();
         }
 

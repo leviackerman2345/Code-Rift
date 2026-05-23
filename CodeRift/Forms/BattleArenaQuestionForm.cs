@@ -1,0 +1,397 @@
+using System;
+using System.Drawing;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using CodeRift.Entities;
+
+namespace CodeRift.Forms
+{
+    /// <summary>
+    /// BattleArenaQuestionForm: Terminal-inspired question UI.
+    /// </summary>
+    public partial class BattleArenaQuestionForm : Form
+    {
+        private static readonly Color DefaultAccent = Color.FromArgb(0, 255, 65);
+        private static readonly Color DefaultMuted = Color.FromArgb(26, 74, 26);
+        private static readonly Color FailureAccent = Color.FromArgb(255, 65, 65);
+        private static readonly Color FailureMuted = Color.FromArgb(80, 24, 24);
+        private static readonly Color DarkBackground = Color.FromArgb(8, 13, 8);
+        private static readonly Color ButtonBackground = Color.FromArgb(5, 10, 5);
+
+        private Color _accentColor = DefaultAccent;
+        private Color _mutedColor = DefaultMuted;
+        private string? _selectedOption;
+        private bool _isSubmitting;
+
+        public Question? CurrentQuestion { get; private set; }
+        public bool WasAnswerCorrect { get; private set; }
+
+        public BattleArenaQuestionForm()
+        {
+            InitializeComponent();
+            SetupInitialUI();
+            WireMultipleChoiceEvents();
+        }
+
+        private void SetupInitialUI()
+        {
+            FormBorderStyle = FormBorderStyle.None;
+            WindowState = FormWindowState.Maximized;
+            BackColor = DarkBackground;
+            KeyPreview = true;
+            KeyDown += BattleArenaQuestionForm_KeyDown;
+
+            lblSystemId.Text = $"SYS_ID: CR-{Random.Shared.Next(100, 999)}-X | MODE: CMD_AUTH";
+            btnSubmit.Text = "CONFIRM_RUN [ENTER]";
+            btnBack.Text = "[ESC] BACK";
+            txtCodeInput.AcceptsTab = true;
+
+            ApplyAccentPalette(DefaultAccent, DefaultMuted);
+            SetQuestionMode(true);
+        }
+
+        /// <summary>
+        /// Populates question content and restores standard terminal palette.
+        /// </summary>
+        public void Populate(Question data, int current, int total)
+        {
+            CurrentQuestion = data;
+            WasAnswerCorrect = false;
+            _selectedOption = null;
+            _isSubmitting = false;
+            EnableInputs(true);
+            ApplyAccentPalette(DefaultAccent, DefaultMuted);
+            ClearOptionHighlights();
+
+            lblQuestion.Text = data.ProblemStatement;
+            lblQuestionCounter.Text = $"/// LEVEL_{data.Level:D2}: {data.LevelTitle} | TASK: {current:D2}_OF_{total:D2} ///";
+            lblHint.Text = $"> HINT: {data.Hint}";
+
+            bool isCodeMode = data.Type == QuestionType.CodeInput;
+            SetQuestionMode(isCodeMode);
+
+            if (!isCodeMode && data.Options != null && data.Options.Count >= 4)
+            {
+                SetOptions(data.Options[0], data.Options[1], data.Options[2], data.Options[3]);
+            }
+
+            if (isCodeMode)
+            {
+                txtCodeInput.Text = "// type your answer here...";
+            }
+        }
+
+        public void SetQuestionMode(bool isCodeMode)
+        {
+            pnlCodeInput.Visible = isCodeMode;
+            pnlMultiChoice.Visible = !isCodeMode;
+
+            if (isCodeMode)
+            {
+                lblLineNumbers.Text = "01\n02\n03\n04\n05\n06\n07\n08\n09\n10";
+                lblHint.Text = "> STATUS: READY | Enter code, then press ENTER.";
+            }
+            else
+            {
+                lblLineNumbers.Text = "A)\nB)\nC)\nD)\n--\nRUN";
+                lblHint.Text = "> STATUS: READY | Pick A/B/C/D, then press ENTER.";
+            }
+        }
+
+        public void UpdateTimer(string timeString)
+        {
+            lblTimer.Text = timeString;
+        }
+
+        private void SetOptions(string a, string b, string c, string d)
+        {
+            btnOptionA.Text = $"[ A ]  {a}";
+            btnOptionB.Text = $"[ B ]  {b}";
+            btnOptionC.Text = $"[ C ]  {c}";
+            btnOptionD.Text = $"[ D ]  {d}";
+
+            btnOptionA.Tag = a;
+            btnOptionB.Tag = b;
+            btnOptionC.Tag = c;
+            btnOptionD.Tag = d;
+        }
+
+        #region Custom Border Painting (Unified Frame)
+
+        private void DoubleLine_Paint(object sender, PaintEventArgs e)
+        {
+            if (sender is Panel pnl)
+            {
+                using Pen pen = new Pen(_accentColor, 1);
+
+                e.Graphics.DrawRectangle(pen, 0, 0, pnl.Width - 1, pnl.Height - 1);
+                e.Graphics.DrawRectangle(pen, 2, 2, pnl.Width - 5, pnl.Height - 5);
+
+                int dividerY = 170;
+                e.Graphics.DrawLine(pen, 0, dividerY, pnl.Width, dividerY);
+                e.Graphics.DrawLine(pen, 0, dividerY + 2, pnl.Width, dividerY + 2);
+            }
+        }
+
+        private void TopBar_Paint(object sender, PaintEventArgs e)
+        {
+            using Pen p = new Pen(_mutedColor, 2);
+            e.Graphics.DrawLine(p, 0, pnlTopBar.Height - 1, pnlTopBar.Width, pnlTopBar.Height - 1);
+        }
+
+        #endregion
+
+        #region Action Logic & Shortcuts
+
+        private async void btnSubmit_Click(object sender, EventArgs e)
+        {
+            if (_isSubmitting || CurrentQuestion == null)
+            {
+                return;
+            }
+
+            _isSubmitting = true;
+            bool isCorrect;
+
+            if (CurrentQuestion.Type == QuestionType.CodeInput)
+            {
+                string input = txtCodeInput.Text.Trim();
+
+                // Existing shortcuts remain valid success paths.
+                if (input == "/////" || input == "///")
+                {
+                    WasAnswerCorrect = true;
+                    DialogResult = DialogResult.OK;
+                    Close();
+                    return;
+                }
+
+                isCorrect = IsAnswerMatch(input, CurrentQuestion.CorrectAnswer);
+            }
+            else
+            {
+                isCorrect = IsAnswerMatch(_selectedOption, CurrentQuestion.CorrectAnswer);
+            }
+
+            WasAnswerCorrect = isCorrect;
+            if (isCorrect)
+            {
+                DialogResult = DialogResult.OK;
+                Close();
+                return;
+            }
+
+            await ShowIncorrectAnswerFeedbackAsync();
+        }
+
+        private async Task ShowIncorrectAnswerFeedbackAsync()
+        {
+            EnableInputs(false);
+            lblHint.Text = "> STATUS: INVALID ANSWER DETECTED. RETRY REQUIRED.";
+
+            // Keep the original green state visible first.
+            await Task.Delay(1000);
+            if (IsDisposed) return;
+
+            // Then shift to red failure palette.
+            ApplyAccentPalette(FailureAccent, FailureMuted);
+            lblHint.Text = "> ACCESS DENIED. LOCKED CARD MUST BE RETRIED.";
+
+            await Task.Delay(700);
+            if (IsDisposed) return;
+
+            DialogResult = DialogResult.No;
+            Close();
+        }
+
+        private void EnableInputs(bool enabled)
+        {
+            btnSubmit.Enabled = enabled;
+            btnBack.Enabled = enabled;
+            btnOptionA.Enabled = enabled;
+            btnOptionB.Enabled = enabled;
+            btnOptionC.Enabled = enabled;
+            btnOptionD.Enabled = enabled;
+            txtCodeInput.ReadOnly = !enabled;
+        }
+
+        private bool IsAnswerMatch(string? playerAnswer, string? correctAnswer)
+        {
+            if (string.IsNullOrWhiteSpace(playerAnswer) || string.IsNullOrWhiteSpace(correctAnswer))
+            {
+                return false;
+            }
+
+            string normalizedPlayer = playerAnswer.Trim().Replace("\r\n", "\n");
+            string normalizedCorrect = correctAnswer.Trim().Replace("\r\n", "\n");
+            return string.Equals(normalizedPlayer, normalizedCorrect, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void btnBack_Click(object sender, EventArgs e)
+        {
+            DialogResult = DialogResult.Cancel;
+            Close();
+        }
+
+        private void WireMultipleChoiceEvents()
+        {
+            btnOptionA.Click += MultipleChoiceOption_Click;
+            btnOptionB.Click += MultipleChoiceOption_Click;
+            btnOptionC.Click += MultipleChoiceOption_Click;
+            btnOptionD.Click += MultipleChoiceOption_Click;
+        }
+
+        private void MultipleChoiceOption_Click(object? sender, EventArgs e)
+        {
+            if (sender is not Button selectedButton || _isSubmitting)
+            {
+                return;
+            }
+
+            _selectedOption = selectedButton.Tag?.ToString() ?? string.Empty;
+            ClearOptionHighlights();
+            HighlightOption(selectedButton);
+        }
+
+        private void BattleArenaQuestionForm_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (_isSubmitting)
+            {
+                return;
+            }
+
+            if (e.KeyCode == Keys.Escape)
+            {
+                btnBack.PerformClick();
+                e.Handled = true;
+                return;
+            }
+
+            if (e.KeyCode == Keys.Enter)
+            {
+                btnSubmit.PerformClick();
+                e.Handled = true;
+                return;
+            }
+
+            if (!pnlMultiChoice.Visible)
+            {
+                return;
+            }
+
+            switch (e.KeyCode)
+            {
+                case Keys.A:
+                    btnOptionA.PerformClick();
+                    e.Handled = true;
+                    break;
+                case Keys.B:
+                    btnOptionB.PerformClick();
+                    e.Handled = true;
+                    break;
+                case Keys.C:
+                    btnOptionC.PerformClick();
+                    e.Handled = true;
+                    break;
+                case Keys.D:
+                    btnOptionD.PerformClick();
+                    e.Handled = true;
+                    break;
+            }
+        }
+
+        private void ClearOptionHighlights()
+        {
+            ResetOptionButton(btnOptionA);
+            ResetOptionButton(btnOptionB);
+            ResetOptionButton(btnOptionC);
+            ResetOptionButton(btnOptionD);
+        }
+
+        private void HighlightOption(Button button)
+        {
+            button.BackColor = _accentColor;
+            button.ForeColor = Color.Black;
+            button.FlatAppearance.BorderColor = Color.Black;
+        }
+
+        private void ResetOptionButton(Button button)
+        {
+            button.BackColor = ButtonBackground;
+            button.ForeColor = _accentColor;
+            button.FlatAppearance.BorderColor = _accentColor;
+        }
+
+        private void ApplyAccentPalette(Color accent, Color muted)
+        {
+            _accentColor = accent;
+            _mutedColor = muted;
+
+            lblQuestionCounter.ForeColor = accent;
+            lblQuestionTag.ForeColor = accent;
+            lblQuestion.ForeColor = accent;
+            lblHint.ForeColor = accent;
+            lblCodeTag.ForeColor = accent;
+            lblMCTag.ForeColor = accent;
+            lblTimer.ForeColor = accent;
+            lblSystemId.ForeColor = muted;
+            lblLineNumbers.ForeColor = muted;
+
+            btnBack.ForeColor = accent;
+            btnSubmit.ForeColor = accent;
+            btnSubmit.FlatAppearance.BorderColor = accent;
+            btnBack.FlatAppearance.BorderColor = accent;
+
+            txtCodeInput.ForeColor = accent;
+            txtCodeInput.BackColor = DarkBackground;
+
+            ResetOptionButton(btnOptionA);
+            ResetOptionButton(btnOptionB);
+            ResetOptionButton(btnOptionC);
+            ResetOptionButton(btnOptionD);
+
+            pnlTopBar.Invalidate();
+            pnlContentFrame.Invalidate();
+            pnlMainLayout.Invalidate();
+        }
+
+        #endregion
+
+        #region Button Hover Effects
+
+        private void InvertedButton_MouseEnter(object sender, EventArgs e)
+        {
+            if (sender is Button btn && btn.Enabled)
+            {
+                btn.BackColor = _accentColor;
+                btn.ForeColor = Color.Black;
+                btn.FlatAppearance.BorderColor = Color.Black;
+            }
+        }
+
+        private void InvertedButton_MouseLeave(object sender, EventArgs e)
+        {
+            if (sender is Button btn)
+            {
+                if (btn == btnOptionA || btn == btnOptionB || btn == btnOptionC || btn == btnOptionD)
+                {
+                    // Keep selected option highlighted.
+                    if ((_selectedOption == (btn.Tag?.ToString() ?? string.Empty)) && !_isSubmitting)
+                    {
+                        HighlightOption(btn);
+                        return;
+                    }
+
+                    ResetOptionButton(btn);
+                    return;
+                }
+
+                btn.BackColor = DarkBackground;
+                btn.ForeColor = _accentColor;
+                btn.FlatAppearance.BorderColor = _accentColor;
+            }
+        }
+
+        #endregion
+    }
+}

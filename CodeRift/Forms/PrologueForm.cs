@@ -20,6 +20,16 @@ namespace CodeRift.Forms
 
         private readonly List<PrologueStep> _steps = new List<PrologueStep>();
 
+        private System.Windows.Forms.Timer _transitionTimer;
+        private System.Windows.Forms.Timer _typeTimer;
+        private int _fadeAlpha = 0;
+        private int _fadeStep = 0;
+        private Action _pendingSceneUpdate;
+        private bool _isTransitioning = false;
+        private string _fullText = "";
+        private int _typeIndex = 0;
+        private bool _isTyping = false;
+
         public PrologueForm()
         {
             InitializeComponent();
@@ -121,6 +131,13 @@ namespace CodeRift.Forms
             this.WindowState = FormWindowState.Maximized;
             this.BackColor = Color.Black;
             this.KeyPreview = true; // Essential for capturing keys regardless of focused control
+            this.DoubleBuffered = true;
+
+            _transitionTimer = new System.Windows.Forms.Timer { Interval = 16 };
+            _transitionTimer.Tick += TransitionTimer_Tick;
+
+            _typeTimer = new System.Windows.Forms.Timer { Interval = 30 };
+            _typeTimer.Tick += TypeTimer_Tick;
 
             // Dialogue box setup
             dialogueBox.Image = ImageManager.Instance.GetImage(Constants.IMG_UI_DIALOGUE);
@@ -130,8 +147,8 @@ namespace CodeRift.Forms
             dialogueLabel.Font = new Font("Courier New", 18, FontStyle.Bold);
             dialogueLabel.BackColor = Color.Transparent;
             dialogueLabel.Parent = dialogueBox;
-            dialogueLabel.Location = new Point(0, 0);
-            dialogueLabel.Size = dialogueBox.Size;
+            dialogueLabel.Location = new Point(50, 20);
+            dialogueLabel.Size = new Size(dialogueBox.Width - 100, dialogueBox.Height - 40);
             dialogueLabel.TextAlign = ContentAlignment.MiddleCenter;
 
             lblClickHint.Text = "[Click anywhere to continue]";
@@ -156,15 +173,92 @@ namespace CodeRift.Forms
             if (_currentStep < _steps.Count)
             {
                 var step = _steps[_currentStep];
-                // Images were preloaded in splash; this only swaps references.
-                this.BackgroundImage = ImageManager.Instance.GetImage(step.ImageKey);
-                this.BackgroundImageLayout = ImageLayout.Stretch;
-                dialogueLabel.Text = step.Text;
-                AudioManager.Instance.PlaySFX(Constants.SFX_CG_CLICK);
+                string prevImageKey = _currentStep > 0 ? _steps[_currentStep - 1].ImageKey : null;
+
+                if (step.ImageKey != prevImageKey)
+                {
+                    _isTransitioning = true;
+                    _pendingSceneUpdate = () => 
+                    {
+                        this.BackgroundImage = ImageManager.Instance.GetImage(step.ImageKey);
+                        this.BackgroundImageLayout = ImageLayout.Stretch;
+                        AudioManager.Instance.PlaySFX(Constants.SFX_CG_CLICK);
+                    };
+                    _fadeStep = 15;
+                    _fadeAlpha = 0;
+                    
+                    dialogueLabel.Text = "";
+                    _isTyping = false;
+                    if (_typeTimer != null) _typeTimer.Stop();
+
+                    _transitionTimer.Start();
+                }
+                else
+                {
+                    AudioManager.Instance.PlaySFX(Constants.SFX_CG_CLICK);
+                    StartTyping();
+                }
             }
             else
             {
                 TransitionToLevelsMenu();
+            }
+        }
+
+        private void TransitionTimer_Tick(object sender, EventArgs e)
+        {
+            _fadeAlpha += _fadeStep;
+            if (_fadeAlpha >= 255)
+            {
+                _fadeAlpha = 255;
+                _fadeStep = -15; // start fading in
+                _pendingSceneUpdate?.Invoke();
+                _pendingSceneUpdate = null;
+            }
+            else if (_fadeAlpha <= 0)
+            {
+                _fadeAlpha = 0;
+                _transitionTimer.Stop();
+                _isTransitioning = false;
+                StartTyping();
+            }
+            this.Invalidate(); // trigger repaint of background
+        }
+
+        private void TypeTimer_Tick(object sender, EventArgs e)
+        {
+            if (_typeIndex < _fullText.Length)
+            {
+                _typeIndex++;
+                dialogueLabel.Text = _fullText.Substring(0, _typeIndex);
+            }
+            else
+            {
+                _isTyping = false;
+                _typeTimer.Stop();
+            }
+        }
+
+        private void StartTyping()
+        {
+            if (_currentStep >= _steps.Count) return;
+            
+            _fullText = _steps[_currentStep].Text;
+            _typeIndex = 0;
+            dialogueLabel.Text = "";
+            _isTyping = true;
+            _typeTimer.Start();
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            base.OnPaintBackground(e);
+            if (_fadeAlpha > 0)
+            {
+                using (SolidBrush brush = new SolidBrush(Color.FromArgb(_fadeAlpha, 0, 0, 0)))
+                {
+                    e.Graphics.FillRectangle(brush, this.ClientRectangle);
+                }
             }
         }
 
@@ -173,8 +267,8 @@ namespace CodeRift.Forms
             base.OnResize(e);
             if (dialogueBox != null && dialogueLabel != null)
             {
-                dialogueLabel.Size = dialogueBox.Size;
-                dialogueLabel.Location = new Point(0, 0);
+                dialogueLabel.Size = new Size(dialogueBox.Width - 100, dialogueBox.Height - 40);
+                dialogueLabel.Location = new Point(50, 20);
             }
         }
 
@@ -190,27 +284,44 @@ namespace CodeRift.Forms
 
         private void btnBack_Click(object sender, EventArgs e)
         {
+            _transitionTimer?.Stop();
+            _typeTimer?.Stop();
             this.Close();
         }
 
         private void btnSkip_Click(object sender, EventArgs e)
         {
+            _transitionTimer?.Stop();
+            _typeTimer?.Stop();
             TransitionToLevelsMenu();
         }
 
         private void AdvanceDialogue()
         {
-            _currentStep++;
-            UpdateScene();
+            if (_isTransitioning) return;
+
+            if (_isTyping)
+            {
+                _isTyping = false;
+                _typeTimer.Stop();
+                dialogueLabel.Text = _fullText;
+            }
+            else
+            {
+                _currentStep++;
+                UpdateScene();
+            }
         }
 
         private void TransitionToLevelsMenu()
         {
+            _transitionTimer?.Stop();
+            _typeTimer?.Stop();
             // Story route: prologue -> levels selection.
             AudioManager.Instance.PlaySFX(Constants.SFX_CG_END);
-            this.Hide();
             var levelsMenu = new LevelsMenuForm();
             levelsMenu.FormClosed += (s, args) => this.Close();
+            levelsMenu.Shown += (s, args) => this.Hide();
             levelsMenu.Show();
         }
 
