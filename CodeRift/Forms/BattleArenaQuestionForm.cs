@@ -344,6 +344,7 @@ namespace CodeRift.Forms
 
             txtCodeInput.ForeColor = accent;
             txtCodeInput.BackColor = DarkBackground;
+            lblQuestion.BackColor = DarkBackground;
 
             ResetOptionButton(btnOptionA);
             ResetOptionButton(btnOptionB);

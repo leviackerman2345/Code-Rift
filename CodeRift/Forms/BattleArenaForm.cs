@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Windows.Forms;
 using CodeRift.Core;
 using CodeRift.Managers;
+using CodeRift.Utils;
 
 namespace CodeRift.Forms
 {
@@ -749,6 +750,7 @@ namespace CodeRift.Forms
                 RefreshPlayerCardLockVisuals();
                 StartAnimations();
 
+                AudioManager.Instance.PlayMusic(Constants.MUSIC_LEVELS);
 #if DEBUG
                 foreach (var line in QuizBattleEngine.RunSimpleTestSimulation())
                 {
@@ -1077,6 +1079,15 @@ namespace CodeRift.Forms
             else if (result == BattleResult.EnemyDefeat)
             {
                 TerminalMessageBox.Show(this, "You win", "Battle End", TerminalMessageType.Info);
+                if (Level == 5)
+                {
+                    AudioManager.Instance.StopMusic();
+                    var epilogue = new EpilogueForm();
+                    epilogue.FormClosed += (s, args) => this.Close();
+                    epilogue.Shown += (s, args) => this.Hide();
+                    epilogue.Show();
+                    return;
+                }
             }
 
             Close();
@@ -1187,6 +1198,7 @@ namespace CodeRift.Forms
         {
             _animTimer.Stop();
             _animTimer.Dispose();
+            AudioManager.Instance.StopMusic();
             if (ReferenceEquals(_spriteCanvas.Image, _spriteBuffer))
             {
                 _spriteCanvas.Image = null;

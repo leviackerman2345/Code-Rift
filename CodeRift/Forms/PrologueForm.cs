@@ -166,6 +166,16 @@ namespace CodeRift.Forms
             btnSkip.TabStop = false;
             this.Click += dialogueBox_Click; // Allow clicking anywhere on the background to progress
             this.Focus();
+
+            AudioManager.Instance.PlayMusic(Constants.MUSIC_PROLOGUE);
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            _transitionTimer?.Stop();
+            _typeTimer?.Stop();
+            AudioManager.Instance.StopMusic();
+            base.OnFormClosing(e);
         }
 
         private void UpdateScene()
@@ -317,6 +327,7 @@ namespace CodeRift.Forms
         {
             _transitionTimer?.Stop();
             _typeTimer?.Stop();
+            AudioManager.Instance.StopMusic();
             // Story route: prologue -> levels selection.
             AudioManager.Instance.PlaySFX(Constants.SFX_CG_END);
             var levelsMenu = new LevelsMenuForm();

@@ -1,6 +1,8 @@
 using CodeRift.Utils;
 using System.IO;
 using System.Media;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace CodeRift.Managers
@@ -18,10 +20,10 @@ namespace CodeRift.Managers
         };
         private readonly Dictionary<string, string> _music = new(StringComparer.OrdinalIgnoreCase)
         {
-            { Constants.MUSIC_MENU, @"Assets\Audio\music\menu.wav" },
-            { Constants.MUSIC_LEVEL1, @"Assets\Audio\music\level1.wav" },
-            { Constants.MUSIC_BOSS, @"Assets\Audio\music\boss.wav" },
-            { Constants.MUSIC_CG_EVENT, @"Assets\Audio\music\cg_event.wav" }
+            { Constants.MUSIC_MENU, @"Assets\Audio\music\MainMenuBGMusic.mp3" },
+            { Constants.MUSIC_PROLOGUE, @"Assets\Audio\music\PrologueBGMusic.mp3" },
+            { Constants.MUSIC_LEVELS, @"Assets\Audio\music\LevelsBGMusic.mp3" },
+            { Constants.MUSIC_EPILOGUE, @"Assets\Audio\music\EpilogueBGMusic.mp3" }
         };
         private readonly Dictionary<string, string> _cgAudio = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -29,8 +31,11 @@ namespace CodeRift.Managers
             { Constants.SFX_CG_END, @"Assets\Audio\sfx\cg_end.wav" },
             { Constants.SFX_CG_ENTER, @"Assets\Audio\sfx\cg_enter.wav" }
         };
-        private MemoryStream? _musicStream;
-        private SoundPlayer? _musicPlayer;
+
+        private string? _currentMusicKey;
+
+        [DllImport("winmm.dll")]
+        private static extern long mciSendString(string strCommand, StringBuilder? strReturn, int iReturnLength, IntPtr hwndCallback);
 
         private AudioManager()
         {
@@ -61,7 +66,12 @@ namespace CodeRift.Managers
                 return;
             }
 
-            _sounds[key] = File.ReadAllBytes(resolvedPath);
+            // For SFX, we still load into memory for fast playback via SoundPlayer if it's a WAV.
+            // For Music (MP3), we'll play directly from file via MCI.
+            if (path.EndsWith(".wav", StringComparison.OrdinalIgnoreCase))
+            {
+                _sounds[key] = File.ReadAllBytes(resolvedPath);
+            }
         }
 
         public void PlaySFX(string key)
@@ -81,34 +91,31 @@ namespace CodeRift.Managers
 
         public void PlayMusic(string key, bool loop = true)
         {
-            if (!_sounds.TryGetValue(key, out byte[]? bytes))
-            {
-                return;
-            }
+            if (_currentMusicKey == key) return;
 
             StopMusic();
 
-            _musicStream = new MemoryStream(bytes, writable: false);
-            _musicPlayer = new SoundPlayer(_musicStream);
+            string? path = null;
+            if (!_music.TryGetValue(key, out path)) return;
 
-            if (loop)
-            {
-                _musicPlayer.PlayLooping();
-            }
-            else
-            {
-                _musicPlayer.Play();
-            }
+            string resolvedPath = ResolvePath(path);
+            if (!File.Exists(resolvedPath)) return;
+
+            _currentMusicKey = key;
+            
+            // MCI command to open the file. We use a short path or quotes to handle spaces.
+            string command = $"open \"{resolvedPath}\" type mpegvideo alias MyMusic";
+            mciSendString(command, null, 0, IntPtr.Zero);
+            
+            command = "play MyMusic" + (loop ? " repeat" : "");
+            mciSendString(command, null, 0, IntPtr.Zero);
         }
 
         public void StopMusic()
         {
-            _musicPlayer?.Stop();
-            _musicPlayer?.Dispose();
-            _musicPlayer = null;
-
-            _musicStream?.Dispose();
-            _musicStream = null;
+            mciSendString("stop MyMusic", null, 0, IntPtr.Zero);
+            mciSendString("close MyMusic", null, 0, IntPtr.Zero);
+            _currentMusicKey = null;
         }
 
         public void Unload()

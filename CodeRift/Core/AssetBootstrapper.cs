@@ -19,7 +19,7 @@ namespace CodeRift.Core
             (Constants.IMG_BG_LEVEL4, Path.Combine("Assets", "Images", "backgrounds", "level_background", "level_4.png")),
             (Constants.IMG_BG_LEVEL5, Path.Combine("Assets", "Images", "backgrounds", "level_background", "level_5.png")),
             (Constants.IMG_UI_BUTTON, Path.Combine("Assets", "Images", "ui", "button_hover.png")),
-            ("IMG_UI_DIALOGUE", Path.Combine("Assets", "Images", "ui", "dialogue_box.png")),
+            (Constants.IMG_UI_DIALOGUE, Path.Combine("Assets", "Images", "ui", "dialogue_box.png")),
             (Constants.CG_01, Path.Combine("Assets", "Images", "prologue", "scene_1.jpeg")),
             (Constants.CG_02, Path.Combine("Assets", "Images", "prologue", "scene_2.jpeg")),
             (Constants.CG_03, Path.Combine("Assets", "Images", "prologue", "scene_3.jpeg")),
@@ -33,12 +33,30 @@ namespace CodeRift.Core
             (Constants.CG_11, Path.Combine("Assets", "Images", "prologue", "scene_11.jpeg")),
             (Constants.CG_12, Path.Combine("Assets", "Images", "prologue", "scene_12.jpeg")),
             (Constants.CG_13, Path.Combine("Assets", "Images", "prologue", "scene_13.jpeg")),
+            (Constants.EP_01, Path.Combine("Assets", "Images", "epilogue", "epilogue_img_1.png")),
+            (Constants.EP_02, Path.Combine("Assets", "Images", "epilogue", "epilogue_img_2.png")),
+            (Constants.EP_03, Path.Combine("Assets", "Images", "epilogue", "epilogue_img_3.png")),
+            (Constants.EP_04, Path.Combine("Assets", "Images", "epilogue", "epilogue_img_4.png")),
+            (Constants.EP_05, Path.Combine("Assets", "Images", "epilogue", "epilogue_img_5.png")),
+            (Constants.EP_06, Path.Combine("Assets", "Images", "epilogue", "epilogue_img_6.png")),
+            (Constants.EP_07, Path.Combine("Assets", "Images", "epilogue", "epilogue_img_7.png")),
+            (Constants.EP_08, Path.Combine("Assets", "Images", "epilogue", "epilogue_img_8.png")),
+            (Constants.EP_09, Path.Combine("Assets", "Images", "epilogue", "epilogue_img_9.png")),
+            (Constants.EP_10, Path.Combine("Assets", "Images", "epilogue", "epilogue_img_10.png")),
             (SplashBackgroundKey, Path.Combine("Assets", "Images", "backgrounds", "Splash background.jpeg")),
             (SplashTitleKey, Path.Combine("Assets", "Images", "ui", "Title.png"))
         };
 
         private static readonly (string Key, string Path)[] AudioAssets =
         {
+            (Constants.SFX_CLICK, Path.Combine("Assets", "Audio", "sfx", "click.wav")),
+            (Constants.SFX_CG_CLICK, Path.Combine("Assets", "Audio", "sfx", "cg_click.wav")),
+            (Constants.SFX_CG_END, Path.Combine("Assets", "Audio", "sfx", "cg_end.wav")),
+            (Constants.SFX_CG_ENTER, Path.Combine("Assets", "Audio", "sfx", "cg_enter.wav")),
+            (Constants.MUSIC_MENU, Path.Combine("Assets", "Audio", "music", "MainMenuBGMusic.mp3")),
+            (Constants.MUSIC_PROLOGUE, Path.Combine("Assets", "Audio", "music", "PrologueBGMusic.mp3")),
+            (Constants.MUSIC_LEVELS, Path.Combine("Assets", "Audio", "music", "LevelsBGMusic.mp3")),
+            (Constants.MUSIC_EPILOGUE, Path.Combine("Assets", "Audio", "music", "EpilogueBGMusic.mp3"))
         };
 
         public static async Task LoadAllAsync(IProgress<AssetLoadProgress>? progress = null, CancellationToken cancellationToken = default)

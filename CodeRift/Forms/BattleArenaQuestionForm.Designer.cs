@@ -32,7 +32,7 @@ namespace CodeRift.Forms
             this.lblQuestionCounter = new System.Windows.Forms.Label();
             this.lblTimer = new System.Windows.Forms.Label();
             this.lblQuestionTag = new System.Windows.Forms.Label();
-            this.lblQuestion = new System.Windows.Forms.Label();
+            this.lblQuestion = new System.Windows.Forms.RichTextBox();
             this.pnlAnswerZone = new System.Windows.Forms.Panel();
             this.pnlCodeInput = new System.Windows.Forms.Panel();
             this.txtCodeInput = new System.Windows.Forms.RichTextBox();
@@ -122,10 +122,14 @@ namespace CodeRift.Forms
             this.lblQuestion.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblQuestion.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(8)))), ((int)(((byte)(13)))), ((int)(((byte)(8)))));
+            this.lblQuestion.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.lblQuestion.Font = new System.Drawing.Font("Courier New", 20F, System.Drawing.FontStyle.Bold);
             this.lblQuestion.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(255)))), ((int)(((byte)(65)))));
             this.lblQuestion.Location = new System.Drawing.Point(20, 40);
             this.lblQuestion.Name = "lblQuestion";
+            this.lblQuestion.ReadOnly = true;
+            this.lblQuestion.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
             this.lblQuestion.Size = new System.Drawing.Size(810, 80);
             this.lblQuestion.TabIndex = 4;
             this.lblQuestion.Text = "Question text will appear here...";
@@ -441,7 +445,7 @@ namespace CodeRift.Forms
         private System.Windows.Forms.Label lblQuestionCounter;
         private System.Windows.Forms.Label lblTimer;
         private System.Windows.Forms.Label lblQuestionTag;
-        private System.Windows.Forms.Label lblQuestion;
+        private System.Windows.Forms.RichTextBox lblQuestion;
         private System.Windows.Forms.Panel pnlAnswerZone;
         private System.Windows.Forms.Panel pnlCodeInput;
         private System.Windows.Forms.Label lblCodeTag;

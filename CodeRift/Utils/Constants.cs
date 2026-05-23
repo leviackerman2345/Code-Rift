@@ -45,6 +45,18 @@ namespace CodeRift.Utils
         public const string CG_12 = "CG_12";
         public const string CG_13 = "CG_13";
 
+        // Image Keys - Epilogue CG
+        public const string EP_01 = "EP_01";
+        public const string EP_02 = "EP_02";
+        public const string EP_03 = "EP_03";
+        public const string EP_04 = "EP_04";
+        public const string EP_05 = "EP_05";
+        public const string EP_06 = "EP_06";
+        public const string EP_07 = "EP_07";
+        public const string EP_08 = "EP_08";
+        public const string EP_09 = "EP_09";
+        public const string EP_10 = "EP_10";
+
         // Audio Keys - SFX
         public const string SFX_JUMP = "SFX_JUMP";
         public const string SFX_CLICK = "SFX_CLICK";
@@ -56,9 +68,9 @@ namespace CodeRift.Utils
 
         // Audio Keys - Music
         public const string MUSIC_MENU = "MUSIC_MENU";
-        public const string MUSIC_LEVEL1 = "MUSIC_LEVEL1";
-        public const string MUSIC_BOSS = "MUSIC_BOSS";
-        public const string MUSIC_CG_EVENT = "MUSIC_CG_EVENT";
+        public const string MUSIC_PROLOGUE = "MUSIC_PROLOGUE";
+        public const string MUSIC_LEVELS = "MUSIC_LEVELS";
+        public const string MUSIC_EPILOGUE = "MUSIC_EPILOGUE";
 
         // Language
         public const string LANG_EN = "en";

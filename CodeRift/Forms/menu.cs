@@ -30,9 +30,14 @@ namespace CodeRift.Forms
         private void btnPlay_Click(object? sender, EventArgs e)
         {
             // Story route: menu -> prologue.
+            AudioManager.Instance.StopMusic();
             PrologueForm prologue = new PrologueForm();
             // When downstream flow closes, return to this menu.
-            prologue.FormClosed += (s, args) => this.Show();
+            prologue.FormClosed += (s, args) => 
+            {
+                this.Show();
+                AudioManager.Instance.PlayMusic(Constants.MUSIC_MENU);
+            };
             prologue.Shown += (s, args) => this.Hide();
             prologue.Show();
         }
@@ -168,8 +173,13 @@ namespace CodeRift.Forms
         private void btnLevels_Click(object? sender, EventArgs e)
         {
             // Direct route: menu -> levels.
+            AudioManager.Instance.StopMusic();
             LevelsMenuForm levelsMenu = new LevelsMenuForm();
-            levelsMenu.FormClosed += (s, args) => this.Show();
+            levelsMenu.FormClosed += (s, args) => 
+            {
+                this.Show();
+                AudioManager.Instance.PlayMusic(Constants.MUSIC_MENU);
+            };
             levelsMenu.Shown += (s, args) => this.Hide();
             levelsMenu.Show();
         }
@@ -186,6 +196,7 @@ namespace CodeRift.Forms
         private void menu_Load(object? sender, EventArgs e)
         {
             ApplyLanguage();
+            AudioManager.Instance.PlayMusic(Constants.MUSIC_MENU);
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

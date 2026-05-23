@@ -49,7 +49,17 @@ namespace CodeRift.Managers
             { Constants.CG_10, @"Assets\Images\prologue\scene_10.jpeg" },
             { Constants.CG_11, @"Assets\Images\prologue\scene_11.jpeg" },
             { Constants.CG_12, @"Assets\Images\prologue\scene_12.jpeg" },
-            { Constants.CG_13, @"Assets\Images\prologue\scene_13.jpeg" }
+            { Constants.CG_13, @"Assets\Images\prologue\scene_13.jpeg" },
+            { Constants.EP_01, @"Assets\Images\epilogue\epilogue_img_1.png" },
+            { Constants.EP_02, @"Assets\Images\epilogue\epilogue_img_2.png" },
+            { Constants.EP_03, @"Assets\Images\epilogue\epilogue_img_3.png" },
+            { Constants.EP_04, @"Assets\Images\epilogue\epilogue_img_4.png" },
+            { Constants.EP_05, @"Assets\Images\epilogue\epilogue_img_5.png" },
+            { Constants.EP_06, @"Assets\Images\epilogue\epilogue_img_6.png" },
+            { Constants.EP_07, @"Assets\Images\epilogue\epilogue_img_7.png" },
+            { Constants.EP_08, @"Assets\Images\epilogue\epilogue_img_8.png" },
+            { Constants.EP_09, @"Assets\Images\epilogue\epilogue_img_9.png" },
+            { Constants.EP_10, @"Assets\Images\epilogue\epilogue_img_10.png" }
         };
 
         private ImageManager()

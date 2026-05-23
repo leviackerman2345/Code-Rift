@@ -11,6 +11,7 @@
   <ItemGroup>
     <Folder Include="Assets\Audio\sfx\" />
     <Folder Include="Assets\Audio\music\" />
+    <Folder Include="Assets\Images\epilogue\" />
     <Folder Include="Core\" />
     <Folder Include="Entities\" />
     <Folder Include="Managers\" />
