@@ -41,7 +41,6 @@ namespace CodeRift.Forms
         private void InitializeScript()
         {
             // SLIDE 1
-            
             AddStep("After a long and devastating battle, Elias finally defeats the supreme Bug known as: The Null King.", Constants.EP_01);
             AddStep("The origin of all corruption born from the Digital Rift.", Constants.EP_01);
 

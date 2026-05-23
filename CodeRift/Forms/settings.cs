@@ -23,6 +23,12 @@ namespace CodeRift.Forms
         {
             InitializeComponent();
             Generate8BitAssets();
+
+            _lastVolume = AudioManager.Instance.VolumePercent;
+            _isMuted = _lastVolume == 0;
+            volSlider.Value = _lastVolume;
+            volIcon.Image = _isMuted ? _iconMute : _iconVolume;
+
             LoadAssets();
             SetupButtonHovers();
             SetupEvents();
@@ -204,9 +210,11 @@ namespace CodeRift.Forms
                     _lastVolume = volSlider.Value;
                     volSlider.Value = 0;
                     volIcon.Image = _iconMute;
+                    AudioManager.Instance.SetVolume(0);
                 } else {
                     volSlider.Value = _lastVolume > 0 ? _lastVolume : 80;
                     volIcon.Image = _iconVolume;
+                    AudioManager.Instance.SetVolume(volSlider.Value);
                 }
             };
 
@@ -218,6 +226,7 @@ namespace CodeRift.Forms
                     _isMuted = true;
                     volIcon.Image = _iconMute;
                 }
+                AudioManager.Instance.SetVolume(volSlider.Value);
             };
 
             btnFilipino.Click += (s, e) => SwitchLanguage(Constants.LANG_PH);

@@ -33,6 +33,9 @@ namespace CodeRift.Managers
         };
 
         private string? _currentMusicKey;
+        private int _globalVolume = 800; // Default 80% (0-1000 scale for MCI)
+
+        public int VolumePercent => _globalVolume / 10;
 
         [DllImport("winmm.dll")]
         private static extern long mciSendString(string strCommand, StringBuilder? strReturn, int iReturnLength, IntPtr hwndCallback);
@@ -66,8 +69,6 @@ namespace CodeRift.Managers
                 return;
             }
 
-            // For SFX, we still load into memory for fast playback via SoundPlayer if it's a WAV.
-            // For Music (MP3), we'll play directly from file via MCI.
             if (path.EndsWith(".wav", StringComparison.OrdinalIgnoreCase))
             {
                 _sounds[key] = File.ReadAllBytes(resolvedPath);
@@ -103,12 +104,25 @@ namespace CodeRift.Managers
 
             _currentMusicKey = key;
             
-            // MCI command to open the file. We use a short path or quotes to handle spaces.
             string command = $"open \"{resolvedPath}\" type mpegvideo alias MyMusic";
             mciSendString(command, null, 0, IntPtr.Zero);
             
+            // Apply current global volume to the new track
+            mciSendString($"setaudio MyMusic volume to {_globalVolume}", null, 0, IntPtr.Zero);
+
             command = "play MyMusic" + (loop ? " repeat" : "");
             mciSendString(command, null, 0, IntPtr.Zero);
+        }
+
+        public void SetVolume(int volumePercent)
+        {
+            // MCI volume is 0 to 1000
+            _globalVolume = Math.Clamp(volumePercent * 10, 0, 1000);
+            
+            if (_currentMusicKey != null)
+            {
+                mciSendString($"setaudio MyMusic volume to {_globalVolume}", null, 0, IntPtr.Zero);
+            }
         }
 
         public void StopMusic()
