@@ -115,6 +115,9 @@ namespace CodeRift.Forms
             };
             btnOk.FlatAppearance.BorderColor = _accentColor;
             btnOk.FlatAppearance.BorderSize = 1;
+            btnOk.Click += (s, e) => {
+                Managers.AudioManager.Instance.PlaySFX(Utils.Constants.SFX_CLICK);
+            };
             btnOk.MouseEnter += (_, _) =>
             {
                 btnOk.BackColor = _accentColor;

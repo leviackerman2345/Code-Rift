@@ -288,11 +288,13 @@ namespace CodeRift.Forms
 
         private void btnReturn_Click(object sender, EventArgs e)
         {
+            AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             ShowCreditsAndReturn();
         }
 
         private void btnBack_Click(object sender, EventArgs e)
         {
+            AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             _transitionTimer?.Stop();
             _typeTimer?.Stop();
             this.Close();
@@ -300,6 +302,7 @@ namespace CodeRift.Forms
 
         private void btnSkip_Click(object sender, EventArgs e)
         {
+            AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             _transitionTimer?.Stop();
             _typeTimer?.Stop();
             ShowCreditsAndReturn();

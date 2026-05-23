@@ -1190,6 +1190,7 @@ namespace CodeRift.Forms
 
         private void btnBack_Click(object sender, EventArgs e)
         {
+            AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             _animTimer.Stop();
             Close();
         }

@@ -174,6 +174,7 @@ namespace CodeRift.Forms
                     }
 
                     btn.FlatAppearance.MouseOverBackColor = matrixGreen;
+                    btn.Click += (s, e) => AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
                     btn.MouseEnter += (s, e) => {
                         btn.ForeColor = Color.Black;
                         btn.FlatAppearance.BorderColor = Color.Black;

@@ -32,7 +32,11 @@ namespace CodeRift.Forms
 
             UpdateLevelButtons();
             StyleLevelButton(btnBack, "[BACK]");
-            btnBack.Click += (s, e) => this.Close();
+            btnBack.Click += (s, e) => 
+            {
+                AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
+                this.Close();
+            };
         }
 
         private void UpdateLevelButtons()
@@ -60,6 +64,7 @@ namespace CodeRift.Forms
                 btn.Tag = true;
                 btn.Click += (s, e) => 
                 {
+                    AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
                     if (ProgressManager.Instance.IsLevelUnlocked(level))
                     {
                         launchAction();

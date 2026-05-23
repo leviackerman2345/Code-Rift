@@ -145,6 +145,7 @@ namespace CodeRift.Forms
 
         private async void btnSubmit_Click(object sender, EventArgs e)
         {
+            AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             if (_isSubmitting || CurrentQuestion == null)
             {
                 return;
@@ -229,6 +230,7 @@ namespace CodeRift.Forms
 
         private void btnBack_Click(object sender, EventArgs e)
         {
+            AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             DialogResult = DialogResult.Cancel;
             Close();
         }
@@ -243,6 +245,7 @@ namespace CodeRift.Forms
 
         private void MultipleChoiceOption_Click(object? sender, EventArgs e)
         {
+            AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             if (sender is not Button selectedButton || _isSubmitting)
             {
                 return;
