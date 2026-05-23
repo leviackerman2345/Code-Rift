@@ -1,6 +1,8 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using CodeRift.Managers;
+using CodeRift.Utils;
 
 namespace CodeRift.Forms
 {
@@ -116,7 +118,7 @@ namespace CodeRift.Forms
             btnOk.FlatAppearance.BorderColor = _accentColor;
             btnOk.FlatAppearance.BorderSize = 1;
             btnOk.Click += (s, e) => {
-                Managers.AudioManager.Instance.PlaySFX(Utils.Constants.SFX_CLICK);
+                AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             };
             btnOk.MouseEnter += (_, _) =>
             {

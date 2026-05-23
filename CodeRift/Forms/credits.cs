@@ -7,6 +7,8 @@ using System.Drawing.Text;
 using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
+using CodeRift.Managers;
+using CodeRift.Utils;
 
 namespace CodeRift.Forms
 {

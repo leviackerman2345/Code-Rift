@@ -3,6 +3,8 @@ using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using CodeRift.Entities;
+using CodeRift.Managers;
+using CodeRift.Utils;
 
 namespace CodeRift.Forms
 {
