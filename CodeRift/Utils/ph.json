@@ -1,0 +1,8 @@
+{
+    "menu_play"     : "Maglaro",
+    "menu_settings" : "Mga Setting",
+    "menu_credits"  : "Mga Kredito",
+    "menu_quit"     : "Huminto",
+    "loading"       : "Naglo-load...",
+    "loading_done"  : "Lahat ng assets ay na-load na."
+}
