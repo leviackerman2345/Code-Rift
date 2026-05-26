@@ -120,6 +120,7 @@ namespace CodeRift.Forms
         public BattleArenaForm(int level = 1)
         {
             InitializeComponent();
+            this.Visible = false;
             Level = level;
             _levelConfig = LevelConfig.ForLevel(level);
             _battleEngine = new QuizBattleEngine(level);
@@ -138,6 +139,30 @@ namespace CodeRift.Forms
 
             SetupLevel();
             LoadAnimationAssets();
+            LoadInitialImages();
+        }
+
+        private void LoadInitialImages()
+        {
+            try
+            {
+                string bgPath = ResolveAssetPath("Assets", "Images", "backgrounds", "level_background", $"level_{Level}.png");
+                if (File.Exists(bgPath))
+                {
+                    BackgroundImage = LoadImageCopy(bgPath);
+                    BackgroundImageLayout = ImageLayout.Stretch;
+                }
+
+                string playerPath = ResolveAssetPath("Assets", "Images", "portraits", "player.jpeg");
+                string enemyPath = ResolveAssetPath("Assets", "Images", "portraits", _levelConfig.Enemy.PortraitFileName);
+                string fallbackEnemyPath = ResolveAssetPath("Assets", "Images", "portraits", DefaultEnemyPortraitFileName);
+                LoadPictureBoxImage(picPlayerThumb, playerPath, "player portrait");
+                LoadPictureBoxImage(picEnemyThumb, enemyPath, $"{_levelConfig.Enemy.Name} portrait", fallbackEnemyPath);
+            }
+            catch (Exception ex)
+            {
+                LogAssetWarning("Initial Image Load Error: " + ex.Message);
+            }
         }
 
         private void EnableDoubleBuffer(Control control)
@@ -535,8 +560,8 @@ namespace CodeRift.Forms
             _animTimer.Interval = AnimationTimerIntervalMs;
             _animTimer.Tick += AnimTimer_Tick;
             _isAnimTimerWired = true;
-            _animTimer.Start();
             RenderActorsToPictureBoxes();
+            _spriteCanvas.Update();
         }
 
         private void AnimTimer_Tick(object? sender, EventArgs e)
@@ -831,8 +856,10 @@ namespace CodeRift.Forms
                 SyncAllHudFromEngine();
                 RefreshPlayerCardLockVisuals();
                 StartAnimations();
+                _animTimer.Start();
 
                 AudioManager.Instance.PlayMusic(Constants.MUSIC_LEVELS);
+                this.Visible = true;
 #if DEBUG
                 foreach (var line in QuizBattleEngine.RunSimpleTestSimulation())
                 {

@@ -24,12 +24,9 @@ namespace CodeRift.Core
 
             child.Shown += (_, _) =>
             {
-                // Force one draw pass before hiding owner to avoid desktop/IDE flash-through.
-                child.BeginInvoke(new Action(() =>
-                {
-                    child.Update();
-                    ShowNextForm(owner, child);
-                }));
+                // Child is ready, fade out owner and fade in child.
+                _ = FadeOutOwnerAsync(owner);
+                ShowNextForm(owner, child);
             };
 
             child.FormClosed += (_, _) =>
@@ -147,6 +144,28 @@ namespace CodeRift.Core
                 }
 
                 owner.Opacity = Math.Min(1d, (i + 1) / (double)steps);
+                await Task.Delay(delayMs);
+            }
+        }
+
+        private static async Task FadeOutOwnerAsync(Form owner)
+        {
+            if (owner.IsDisposed)
+            {
+                return;
+            }
+
+            const int steps = 10;
+            const int delayMs = 16;
+
+            for (int i = 0; i < steps; i++)
+            {
+                if (owner.IsDisposed)
+                {
+                    return;
+                }
+
+                owner.Opacity = Math.Max(0d, 1d - (i + 1) / (double)steps);
                 await Task.Delay(delayMs);
             }
         }
