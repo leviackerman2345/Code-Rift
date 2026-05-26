@@ -93,14 +93,14 @@ namespace CodeRift.Forms
             // 
             // lblTimer
             // 
-            this.lblTimer.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.lblTimer.Font = new System.Drawing.Font("Courier New", 24F, System.Drawing.FontStyle.Bold);
+            this.lblTimer.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblTimer.Font = new System.Drawing.Font("Courier New", 14F, System.Drawing.FontStyle.Bold);
             this.lblTimer.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(255)))), ((int)(((byte)(65)))));
-            this.lblTimer.Location = new System.Drawing.Point(620, 115);
+            this.lblTimer.Location = new System.Drawing.Point(480, 5);
             this.lblTimer.Name = "lblTimer";
-            this.lblTimer.Size = new System.Drawing.Size(210, 40);
+            this.lblTimer.Size = new System.Drawing.Size(350, 30);
             this.lblTimer.TabIndex = 2;
-            this.lblTimer.Text = "00:00:00";
+            this.lblTimer.Text = "00:00";
             this.lblTimer.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             // 
             // lblQuestionTag

@@ -226,14 +226,15 @@ namespace CodeRift.Forms
             // lblTimer
             // 
             lblTimer.Anchor = AnchorStyles.Top;
-            lblTimer.AutoSize = true;
-            lblTimer.Font = new Font("Courier New", 14F);
+            lblTimer.AutoSize = false;
+            lblTimer.Font = new Font("Courier New", 16F, FontStyle.Bold);
             lblTimer.ForeColor = Color.White;
-            lblTimer.Location = new Point(607, 70);
+            lblTimer.Location = new Point(440, 70);
             lblTimer.Name = "lblTimer";
-            lblTimer.Size = new Size(65, 21);
+            lblTimer.Size = new Size(400, 30);
             lblTimer.TabIndex = 6;
             lblTimer.Text = "00:00";
+            lblTimer.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // picEnemyThumb
             // 
