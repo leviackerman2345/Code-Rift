@@ -30,6 +30,12 @@ namespace CodeRift.Forms
         private bool _isShowingCodeInputPlaceholder;
         private bool _updatingCodeInputPlaceholder;
 
+        private readonly System.Windows.Forms.Timer _questionTimer = new System.Windows.Forms.Timer();
+        private double _timeLeftSeconds;
+        private double _graceLeftSeconds = 3.0;
+        private double _totalAllowedTime;
+        private int _lastTickedSecond = -1;
+
         public Question? CurrentQuestion { get; private set; }
         public bool WasAnswerCorrect { get; private set; }
         public QuestionSkipCommandType SkipCommand { get; private set; }
@@ -43,6 +49,7 @@ namespace CodeRift.Forms
 
         private void SetupInitialUI()
         {
+            ConfigureTimer();
             ConfigureFormLayout();
             ConfigureInputEvents();
             ConfigureDefaultLabels();
@@ -52,6 +59,85 @@ namespace CodeRift.Forms
 
             // Enable double buffering recursively on all components to prevent flickering.
             EnableDoubleBuffer(this);
+        }
+
+        private void ConfigureTimer()
+        {
+            _questionTimer.Interval = 100;
+            _questionTimer.Tick += QuestionTimer_Tick;
+        }
+
+        private int GetAllowedTimeForLevel(int level)
+        {
+            return level switch
+            {
+                1 => 35,
+                2 => 30,
+                3 => 25,
+                4 => 22,
+                _ => 20
+            };
+        }
+
+        private void QuestionTimer_Tick(object? sender, EventArgs e)
+        {
+            if (_isSubmitting || IsDisposed)
+            {
+                return;
+            }
+
+            if (_graceLeftSeconds > 0)
+            {
+                _graceLeftSeconds -= 0.1;
+                lblTimer.Text = $"[SEC_SECURE: {Math.Ceiling(_timeLeftSeconds):00}s]";
+                lblTimer.ForeColor = _accentColor;
+                return;
+            }
+
+            _timeLeftSeconds -= 0.1;
+            if (_timeLeftSeconds <= 0)
+            {
+                _timeLeftSeconds = 0;
+                _questionTimer.Stop();
+                lblTimer.Text = "[TIME_EXPIRED]";
+                lblTimer.ForeColor = FailureAccent;
+                HandleTimeout();
+                return;
+            }
+
+            lblTimer.Text = $"[TIME_LEFT: {Math.Ceiling(_timeLeftSeconds):00}s]";
+
+            int currentSec = (int)Math.Ceiling(_timeLeftSeconds);
+            if (_timeLeftSeconds <= 5.0)
+            {
+                lblTimer.ForeColor = FailureAccent;
+                if (currentSec != _lastTickedSecond)
+                {
+                    _lastTickedSecond = currentSec;
+                    AudioManager.Instance.PlaySFX(Constants.SFX_HOVER); // Play a digital tick alert
+                }
+            }
+            else if (_timeLeftSeconds <= 10.0)
+            {
+                lblTimer.ForeColor = Color.Yellow;
+            }
+            else
+            {
+                lblTimer.ForeColor = _accentColor;
+            }
+        }
+
+        private async void HandleTimeout()
+        {
+            _isSubmitting = true;
+            WasAnswerCorrect = false;
+            await ShowIncorrectAnswerFeedbackAsync();
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            _questionTimer.Stop();
+            base.OnFormClosing(e);
         }
 
         private void EnableDoubleBuffer(Control control)
@@ -125,6 +211,14 @@ namespace CodeRift.Forms
             {
                 HideCodeInputPlaceholder(clearText: true);
             }
+
+            _totalAllowedTime = GetAllowedTimeForLevel(data.Level);
+            _timeLeftSeconds = _totalAllowedTime;
+            _graceLeftSeconds = 3.0;
+            _lastTickedSecond = -1;
+            lblTimer.Text = $"[SEC_SECURE: {Math.Ceiling(_timeLeftSeconds):00}s]";
+            lblTimer.ForeColor = DefaultAccent;
+            _questionTimer.Start();
         }
 
         public void SetQuestionMode(bool isCodeMode)
@@ -197,6 +291,7 @@ namespace CodeRift.Forms
                 return;
             }
 
+            _questionTimer.Stop();
             _isSubmitting = true;
             if (TryHandleSkipCommand(GetSubmittedCommandText()))
             {
@@ -311,12 +406,14 @@ namespace CodeRift.Forms
 
         private void btnBack_Click(object sender, EventArgs e)
         {
+            _questionTimer.Stop();
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             CancelQuestion();
         }
 
         private void CancelQuestion()
         {
+            _questionTimer.Stop();
             DialogResult = DialogResult.Cancel;
             Close();
         }

@@ -149,6 +149,11 @@ namespace CodeRift.Core
         public EnemyDifficultyProfile Difficulty { get; }
         public IReadOnlyList<AttackCard> AttackCards => _attackCards;
 
+        public void ApplyChipDamageToPlayer(int amount)
+        {
+            PlayerHP = Math.Max(0, PlayerHP - amount);
+        }
+
         public QuizBattleEngine(int enemyLevel, IRandomProvider? randomProvider = null, Dictionary<int, HashSet<int>>? fixedEnemyCardKeyNumbers = null)
         {
             if (!_difficultyByLevel.TryGetValue(enemyLevel, out var difficulty))

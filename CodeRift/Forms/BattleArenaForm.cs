@@ -78,6 +78,8 @@ namespace CodeRift.Forms
         private int _currentFrame = 0;
         private int _animFrameIdx = 0;
         private int _stateTickCounter = 0;
+        private double _idleTimeElapsedSeconds = 0.0;
+        private int _idleTimeoutFlashFrames = 0;
         private readonly System.Windows.Forms.Timer _animTimer = new();
         private bool _isAnimTimerWired;
 
@@ -819,6 +821,7 @@ namespace CodeRift.Forms
 
                 case BattleState.IdleLoop:
                     HandleIdleAnimation();
+                    UpdateIdleTimer();
                     break;
 
                 case BattleState.PlayerAttacking:
@@ -1388,6 +1391,10 @@ namespace CodeRift.Forms
         {
             _currentState = newState;
             _stateTickCounter = 0;
+            if (newState == BattleState.IdleLoop)
+            {
+                _idleTimeElapsedSeconds = 0.0;
+            }
         }
 
         private void RenderActorsToPictureBoxes()
@@ -1430,8 +1437,57 @@ namespace CodeRift.Forms
             graphics.DrawImage(actor.CurrentImage, new Rectangle(drawPoint, actor.RenderSize));
         }
 
+        private void UpdateIdleTimer()
+        {
+            if (_battleEnded || IsDisposed || Disposing)
+            {
+                return;
+            }
+
+            _idleTimeElapsedSeconds += (AnimationTimerIntervalMs / 1000.0);
+
+            double timeLeft = Math.Max(0.0, 15.0 - _idleTimeElapsedSeconds);
+            lblTimer.Text = $"[THREAT: {Math.Ceiling(timeLeft):00}s]";
+
+            if (timeLeft <= 5.0)
+            {
+                lblTimer.ForeColor = Color.FromArgb(255, 65, 65); // Cyber Red
+            }
+            else if (timeLeft <= 8.0)
+            {
+                lblTimer.ForeColor = Color.Yellow;
+            }
+            else
+            {
+                lblTimer.ForeColor = Color.FromArgb(0, 255, 65); // Matrix Green
+            }
+
+            if (timeLeft <= 0.0)
+            {
+                _idleTimeElapsedSeconds = 0.0;
+
+                // Play hurt audio-visual feedback to make it completely fair and clear
+                AudioManager.Instance.PlaySFX(Constants.SFX_HIT);
+
+                // Chip damage
+                _battleEngine.ApplyChipDamageToPlayer(5);
+                UpdatePlayerHudFromEngine();
+
+                // Trigger a momentary background danger overlay flash
+                _idleTimeoutFlashFrames = 15;
+
+                EvaluateBattleResult();
+            }
+        }
+
         private Color GetBackgroundShadeColor()
         {
+            if (_idleTimeoutFlashFrames > 0)
+            {
+                _idleTimeoutFlashFrames--;
+                return Color.FromArgb(120, 200, 0, 0); // Danger Cyber Red
+            }
+
             // Player attack phase: pure black from player attack start through enemy hurt end.
             if (_currentState == BattleState.PlayerAttacking || _currentState == BattleState.EnemyHurting)
             {
@@ -1638,6 +1694,12 @@ namespace CodeRift.Forms
             int fullWidth = pnlPlayerHealthBg.Width;
             int newWidth = (int)((_battleEngine.PlayerHP / 100.0) * fullWidth);
             pnlPlayerHealthFill.Width = Math.Max(0, newWidth);
+
+            if (_currentState != BattleState.IdleLoop)
+            {
+                lblTimer.Text = "[RIFT_SECURE]";
+                lblTimer.ForeColor = Color.FromArgb(0, 255, 65); // Matrix Green
+            }
         }
 
         private void UpdateEnemyHudFromEngine()
