@@ -27,6 +27,7 @@ namespace CodeRift.Forms
         private int _typeIndex;
         private bool _isTyping;
         private bool _isFinishing;
+        private int _lastRenderedTypeIndex;
 
         public StoryForm(StoryConfig config)
         {
@@ -49,6 +50,7 @@ namespace CodeRift.Forms
             KeyPreview = true;
             DoubleBuffered = true;
             ClientSize = new Size(1280, 720);
+            BackgroundImageLayout = ImageLayout.Stretch;
 
             Controls.Add(_dialogueBox);
             Controls.Add(_finishButton);
@@ -157,7 +159,6 @@ namespace CodeRift.Forms
             _pendingSceneUpdate = () =>
             {
                 BackgroundImage = ImageManager.Instance.GetImage(imageKey);
-                BackgroundImageLayout = ImageLayout.Stretch;
                 AudioManager.Instance.PlaySFX(Constants.SFX_CG_CLICK);
             };
 
@@ -195,7 +196,15 @@ namespace CodeRift.Forms
             if (_typeIndex < _fullText.Length)
             {
                 _typeIndex++;
-                _dialogueLabel.Text = _fullText.Substring(0, _typeIndex);
+
+                // Render every 2 chars to cut label/string churn while keeping the same typing feel.
+                bool shouldRenderNow = _typeIndex == _fullText.Length || (_typeIndex - _lastRenderedTypeIndex) >= 2;
+                if (shouldRenderNow)
+                {
+                    _dialogueLabel.Text = _fullText.Substring(0, _typeIndex);
+                    _lastRenderedTypeIndex = _typeIndex;
+                }
+
                 return;
             }
 
@@ -212,6 +221,7 @@ namespace CodeRift.Forms
 
             _fullText = _config.Steps[_currentStep].Text;
             _typeIndex = 0;
+            _lastRenderedTypeIndex = 0;
             _dialogueLabel.Text = string.Empty;
             _isTyping = true;
             _typeTimer.Start();

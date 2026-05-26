@@ -21,9 +21,21 @@
     <Compile Update="Forms\BattleArenaForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="Forms\BattleArenaForm.Designer.cs">
+      <DependentUpon>BattleArenaForm.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Update="Forms\BattleArenaForm.resx">
+      <DependentUpon>BattleArenaForm.cs</DependentUpon>
+    </EmbeddedResource>
     <Compile Update="Forms\BattleArenaQuestionForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="Forms\BattleArenaQuestionForm.Designer.cs">
+      <DependentUpon>BattleArenaQuestionForm.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Update="Forms\BattleArenaQuestionForm.resx">
+      <DependentUpon>BattleArenaQuestionForm.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

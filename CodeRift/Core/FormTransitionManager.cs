@@ -6,36 +6,33 @@ namespace CodeRift.Core
 {
     public static class FormTransitionManager
     {
-        private const int FadeDurationMs = 180;
-        private const int FadeIntervalMs = 15;
         private static bool _isTransitioning;
 
         public static bool IsTransitioning => _isTransitioning;
 
         public static bool ShowChild(Form owner, Form child, Func<bool>? onChildClosed = null)
         {
-            if (_isTransitioning || owner.IsDisposed || child.IsDisposed)
+            if (!CanStartTransition(owner, child))
             {
                 return false;
             }
 
-            _isTransitioning = true;
-            child.Opacity = 0;
+            BeginTransition(owner);
+            FormWindowState ownerState = owner.WindowState;
+            Rectangle ownerBounds = owner.Bounds;
+            PrepareChildForm(owner, child, ownerState, ownerBounds);
 
-            child.Shown += async (_, _) =>
+            child.Shown += (_, _) =>
             {
-                await FadeAsync(child, 1.0);
-
-                if (!owner.IsDisposed)
+                // Force one draw pass before hiding owner to avoid desktop/IDE flash-through.
+                child.BeginInvoke(new Action(() =>
                 {
-                    owner.Hide();
-                    owner.Opacity = 1.0;
-                }
-
-                _isTransitioning = false;
+                    child.Update();
+                    ShowNextForm(owner, child);
+                }));
             };
 
-            child.FormClosed += async (_, _) =>
+            child.FormClosed += (_, _) =>
             {
                 bool shouldShowOwner = onChildClosed?.Invoke() ?? true;
                 if (!shouldShowOwner || owner.IsDisposed)
@@ -43,36 +40,114 @@ namespace CodeRift.Core
                     return;
                 }
 
-                owner.Opacity = 0;
-                owner.Show();
-                await FadeAsync(owner, 1.0);
+                RestoreOwnerForm(owner, ownerState, ownerBounds);
             };
 
-            child.Show();
-            return true;
+            try
+            {
+                child.Show();
+                return true;
+            }
+            catch
+            {
+                EndTransition(owner);
+                return false;
+            }
         }
 
-        private static async Task FadeAsync(Form form, double targetOpacity)
+        private static bool CanStartTransition(Form owner, Form child)
         {
-            if (form.IsDisposed)
+            return !_isTransitioning && !owner.IsDisposed && !child.IsDisposed;
+        }
+
+        private static void BeginTransition(Form owner)
+        {
+            _isTransitioning = true;
+            owner.Enabled = false;
+        }
+
+        private static void PrepareChildForm(Form owner, Form child, FormWindowState ownerState, Rectangle ownerBounds)
+        {
+            child.StartPosition = FormStartPosition.Manual;
+            child.Opacity = 0d;
+
+            if (ownerState == FormWindowState.Maximized)
+            {
+                child.WindowState = FormWindowState.Maximized;
+            }
+            else
+            {
+                child.Bounds = ownerBounds;
+            }
+        }
+
+        private static void ShowNextForm(Form owner, Form child)
+        {
+            if (!child.IsDisposed)
+            {
+                child.Opacity = 1d;
+                child.Update();
+                child.Activate();
+            }
+
+            if (!owner.IsDisposed)
+            {
+                owner.Hide();
+            }
+
+            EndTransition(owner);
+        }
+
+        private static void RestoreOwnerForm(Form owner, FormWindowState ownerState, Rectangle ownerBounds)
+        {
+            owner.Opacity = 0d;
+            owner.SuspendLayout();
+
+            if (ownerState == FormWindowState.Maximized)
+            {
+                owner.WindowState = FormWindowState.Maximized;
+            }
+            else
+            {
+                owner.WindowState = FormWindowState.Normal;
+                owner.Bounds = ownerBounds;
+            }
+
+            owner.Show();
+            owner.ResumeLayout(performLayout: true);
+            owner.Activate();
+            _ = FadeInOwnerAsync(owner);
+        }
+
+        private static void EndTransition(Form owner)
+        {
+            if (!owner.IsDisposed)
+            {
+                owner.Enabled = true;
+            }
+
+            _isTransitioning = false;
+        }
+
+        private static async Task FadeInOwnerAsync(Form owner)
+        {
+            if (owner.IsDisposed)
             {
                 return;
             }
 
-            double startOpacity = form.Opacity;
-            int elapsed = 0;
+            const int steps = 10;
+            const int delayMs = 16;
 
-            while (elapsed < FadeDurationMs && !form.IsDisposed)
+            for (int i = 0; i < steps; i++)
             {
-                elapsed += FadeIntervalMs;
-                double amount = Math.Min(1.0, elapsed / (double)FadeDurationMs);
-                form.Opacity = startOpacity + ((targetOpacity - startOpacity) * amount);
-                await Task.Delay(FadeIntervalMs);
-            }
+                if (owner.IsDisposed)
+                {
+                    return;
+                }
 
-            if (!form.IsDisposed)
-            {
-                form.Opacity = targetOpacity;
+                owner.Opacity = Math.Min(1d, (i + 1) / (double)steps);
+                await Task.Delay(delayMs);
             }
         }
     }

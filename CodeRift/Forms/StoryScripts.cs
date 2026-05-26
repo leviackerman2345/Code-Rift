@@ -89,7 +89,7 @@ namespace CodeRift.Forms
                 title: "Epilogue",
                 musicKey: Constants.MUSIC_EPILOGUE,
                 showFinishButtonOnLastStep: true,
-                finishButtonText: "Continue",
+                finishButtonText: "System.Reboot();",
                 finishAction: form =>
                 {
                     CreditsForm creditsForm = new CreditsForm();

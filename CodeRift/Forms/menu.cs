@@ -2,7 +2,7 @@
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.IO;
+using System.Reflection;
 using System.Windows.Forms;
 using CodeRift.Core;
 using CodeRift.Managers;
@@ -14,7 +14,6 @@ namespace CodeRift.Forms
     public partial class MenuForm : Form
     {
         private Image? _backgroundImage;
-        private Image? _hoverImage;
 
         public MenuForm()
 
@@ -22,6 +21,7 @@ namespace CodeRift.Forms
             InitializeComponent();
             LoadAssets();
             SetupFullScreen();
+            SetupRendering();
             SetupButtonHovers();
             ApplyLanguage();
             btnPlay.Click += btnPlay_Click;
@@ -56,9 +56,24 @@ namespace CodeRift.Forms
                 {
                     if (ctrl is Button btn)
                     {
-                        MenuButtonStyle.Apply(btn, btn.Text, useMenuSize: true, playClickSound: true);
+                        MenuButtonStyle.Apply(btn, btn.Text, useMenuSize: true, playClickSound: true, useHoverImage: true);
                     }
                 }
+            }
+
+            SyncMenuVisualState();
+        }
+
+        private void SetupRendering()
+        {
+            SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
+            UpdateStyles();
+
+            if (buttonContainer != null)
+            {
+                typeof(Control)
+                    .GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic)
+                    ?.SetValue(buttonContainer, true, null);
             }
         }
 
@@ -97,14 +112,27 @@ namespace CodeRift.Forms
                 titleBox.Image = ImageManager.Instance.GetImage(AssetBootstrapper.SplashTitleKey);
             }
 
-            // Shared hover texture for all menu buttons.
-            _hoverImage = ImageManager.Instance.GetImage(Constants.IMG_UI_BUTTON);
         }
 
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);
             CenterControls();
+        }
+
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            base.OnVisibleChanged(e);
+            if (Visible)
+            {
+                SyncMenuVisualState();
+            }
+        }
+
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+            SyncMenuVisualState();
         }
 
         private void CenterControls()
@@ -132,6 +160,24 @@ namespace CodeRift.Forms
             // 5. Apply Vertical Positions
             titleBox.Top = startY;
             buttonContainer.Top = titleBox.Bottom + verticalGap;
+        }
+
+        private void SyncMenuVisualState()
+        {
+            CenterControls();
+
+            if (buttonContainer == null)
+            {
+                return;
+            }
+
+            foreach (Control ctrl in buttonContainer.Controls)
+            {
+                if (ctrl is Button btn)
+                {
+                    MenuButtonStyle.SyncHoverVisualState(btn);
+                }
+            }
         }
 
         private void btnExit_Click(object? sender, EventArgs e)

@@ -49,6 +49,8 @@ namespace CodeRift.Forms
         private const int GroundVisiblePadding = 0;
         private const string DefaultEnemyAssetFolder = "enemy1";
         private const string DefaultEnemyPortraitFileName = "enemy_level_1.jpeg";
+        private static readonly Dictionary<string, Image> BattleAssetCache = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly object BattleAssetCacheLock = new();
 
         protected override CreateParams CreateParams
         {
@@ -79,6 +81,7 @@ namespace CodeRift.Forms
         private int _animFrameIdx = 0;
         private int _stateTickCounter = 0;
         private readonly System.Windows.Forms.Timer _animTimer = new();
+        private bool _isAnimTimerWired;
 
         private Point _playerPos;
         private Point _enemyPos;
@@ -106,6 +109,7 @@ namespace CodeRift.Forms
         private readonly Dictionary<PictureBox, int> _cardIdByPicture = new();
         private readonly Dictionary<int, PictureBox> _pictureByCardId = new();
         private readonly HashSet<int> _usedPlayerCards = new();
+        private readonly HashSet<PictureBox> _wiredPlayerCardBoxes = new();
 
         // Core battle logic engine.
         private readonly QuizBattleEngine _battleEngine;
@@ -301,23 +305,46 @@ namespace CodeRift.Forms
 
         private static Image LoadFrame(string path, bool applyTransparency)
         {
-            Image frame = LoadImageCopy(path);
-            if (applyTransparency)
+            string cacheKey = applyTransparency ? "FRAME_T|" + path : "FRAME|" + path;
+            return GetCachedImage(cacheKey, () =>
             {
-                Image transparentFrame = MakeNearBlackBackgroundTransparent(frame);
-                frame.Dispose();
-                return transparentFrame;
-            }
+                Image source = LoadImageFromDisk(path);
+                if (!applyTransparency)
+                {
+                    return source;
+                }
 
-            return frame;
+                Image transparentFrame = MakeNearBlackBackgroundTransparent(source);
+                source.Dispose();
+                return transparentFrame;
+            });
         }
 
         private static Image LoadImageCopy(string path)
+        {
+            return GetCachedImage("RAW|" + path, () => LoadImageFromDisk(path));
+        }
+
+        private static Image LoadImageFromDisk(string path)
         {
             byte[] bytes = File.ReadAllBytes(path);
             using MemoryStream stream = new MemoryStream(bytes, writable: false);
             using Image loadedImage = Image.FromStream(stream);
             return new Bitmap(loadedImage);
+        }
+
+        private static Image GetCachedImage(string cacheKey, Func<Image> createImage)
+        {
+            lock (BattleAssetCacheLock)
+            {
+                if (!BattleAssetCache.TryGetValue(cacheKey, out Image? cachedImage))
+                {
+                    cachedImage = createImage();
+                    BattleAssetCache[cacheKey] = cachedImage;
+                }
+
+                return (Image)cachedImage.Clone();
+            }
         }
 
         private static int GetFrameSortNumber(string path)
@@ -481,6 +508,11 @@ namespace CodeRift.Forms
 
         private void StartAnimations()
         {
+            if (_isAnimTimerWired)
+            {
+                return;
+            }
+
             // Align both actors by feet on the same baseline, while preserving animation states.
             int desiredGroundBaseline = Math.Max(picPlayerPortrait.Bottom, picEnemyPortrait.Bottom) + GroundDropOffset;
             int maxVisibleGroundBaseline = pnlBattleZone.Height - GroundVisiblePadding;
@@ -502,6 +534,7 @@ namespace CodeRift.Forms
 
             _animTimer.Interval = AnimationTimerIntervalMs;
             _animTimer.Tick += AnimTimer_Tick;
+            _isAnimTimerWired = true;
             _animTimer.Start();
             RenderActorsToPictureBoxes();
         }
@@ -847,14 +880,18 @@ namespace CodeRift.Forms
                     _cardIdByPicture[boxes[i]] = cardId;
                     _pictureByCardId[cardId] = boxes[i];
                     boxes[i].Cursor = Cursors.Hand;
-                    boxes[i].MouseEnter += (s, e) => {
-                        if (s is PictureBox pb && _cardIdByPicture.TryGetValue(pb, out int id)) {
-                            if (!_usedPlayerCards.Contains(id) && _battleEngine.CanSelectCard(id)) {
-                                AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
+
+                    if (_wiredPlayerCardBoxes.Add(boxes[i]))
+                    {
+                        boxes[i].MouseEnter += (s, e) => {
+                            if (s is PictureBox pb && _cardIdByPicture.TryGetValue(pb, out int id)) {
+                                if (!_usedPlayerCards.Contains(id) && _battleEngine.CanSelectCard(id)) {
+                                    AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
+                                }
                             }
-                        }
-                    };
-                    boxes[i].Click += PlayerCard_Click;
+                        };
+                        boxes[i].Click += PlayerCard_Click;
+                    }
                 }
             }
         }
@@ -1173,8 +1210,15 @@ namespace CodeRift.Forms
         {
             AudioManager.Instance.StopMusic();
             var epilogue = new StoryForm(StoryScripts.CreateEpilogue());
-            epilogue.FormClosed += (s, args) => Close();
-            epilogue.Show();
+            if (!FormTransitionManager.ShowChild(this, epilogue, () =>
+            {
+                Close();
+                return false;
+            }))
+            {
+                epilogue.Dispose();
+                Close();
+            }
         }
 
         private void SyncAllHudFromEngine()

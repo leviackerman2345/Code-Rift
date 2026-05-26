@@ -18,8 +18,8 @@ namespace CodeRift.Managers
         public static QuestionManager Instance => _instance ??= new QuestionManager();
 
         private List<Question> _allQuestions = new List<Question>();
+        private readonly Dictionary<int, List<Question>> _questionsByLevel = new Dictionary<int, List<Question>>();
         private Dictionary<int, int> _levelQuestionIndices = new Dictionary<int, int>();
-        private Random _random = new Random();
 
         private QuestionManager()
         {
@@ -43,6 +43,7 @@ namespace CodeRift.Managers
                     if (bank != null)
                     {
                         _allQuestions = bank.Questions;
+                        BuildLevelQuestionCache();
                         _levelQuestionIndices.Clear();
                     }
                 }
@@ -61,10 +62,7 @@ namespace CodeRift.Managers
         /// <returns>A Question object, or a fallback if none found.</returns>
         public Question GetRandomQuestion(int level)
         {
-            // Filter questions by level
-            var levelQuestions = _allQuestions.Where(q => q.Level == level).ToList();
-
-            if (levelQuestions.Count > 0)
+            if (_questionsByLevel.TryGetValue(level, out List<Question>? levelQuestions) && levelQuestions.Count > 0)
             {
                 if (!_levelQuestionIndices.TryGetValue(level, out int index))
                 {
@@ -93,5 +91,21 @@ namespace CodeRift.Managers
         /// Forces a reload of the questions (useful for debugging).
         /// </summary>
         public void Reload() => LoadQuestions();
+
+        private void BuildLevelQuestionCache()
+        {
+            _questionsByLevel.Clear();
+
+            foreach (Question question in _allQuestions)
+            {
+                if (!_questionsByLevel.TryGetValue(question.Level, out List<Question>? list))
+                {
+                    list = new List<Question>();
+                    _questionsByLevel[question.Level] = list;
+                }
+
+                list.Add(question);
+            }
+        }
     }
 }
