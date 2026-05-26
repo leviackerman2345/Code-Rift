@@ -39,6 +39,7 @@ namespace CodeRift.Forms
         public Question? CurrentQuestion { get; private set; }
         public bool WasAnswerCorrect { get; private set; }
         public QuestionSkipCommandType SkipCommand { get; private set; }
+        public Action<string, Color>? OnTimerTick;
 
         public BattleArenaQuestionForm()
         {
@@ -89,8 +90,7 @@ namespace CodeRift.Forms
             if (_graceLeftSeconds > 0)
             {
                 _graceLeftSeconds -= 0.1;
-                lblTimer.Text = $"[SEC_SECURE: {Math.Ceiling(_timeLeftSeconds):00}s]";
-                lblTimer.ForeColor = _accentColor;
+                UpdateTimerUI($"[SEC_SECURE: {Math.Ceiling(_timeLeftSeconds):00}s]", _accentColor);
                 return;
             }
 
@@ -99,18 +99,18 @@ namespace CodeRift.Forms
             {
                 _timeLeftSeconds = 0;
                 _questionTimer.Stop();
-                lblTimer.Text = "[TIME_EXPIRED]";
-                lblTimer.ForeColor = FailureAccent;
+                UpdateTimerUI("[TIME_EXPIRED]", FailureAccent);
                 HandleTimeout();
                 return;
             }
 
-            lblTimer.Text = $"[TIME_LEFT: {Math.Ceiling(_timeLeftSeconds):00}s]";
+            string text = $"[TIME_LEFT: {Math.Ceiling(_timeLeftSeconds):00}s]";
+            Color color = _accentColor;
 
             int currentSec = (int)Math.Ceiling(_timeLeftSeconds);
             if (_timeLeftSeconds <= 5.0)
             {
-                lblTimer.ForeColor = FailureAccent;
+                color = FailureAccent;
                 if (currentSec != _lastTickedSecond)
                 {
                     _lastTickedSecond = currentSec;
@@ -119,12 +119,10 @@ namespace CodeRift.Forms
             }
             else if (_timeLeftSeconds <= 10.0)
             {
-                lblTimer.ForeColor = Color.Yellow;
+                color = Color.Yellow;
             }
-            else
-            {
-                lblTimer.ForeColor = _accentColor;
-            }
+
+            UpdateTimerUI(text, color);
         }
 
         private async void HandleTimeout()
@@ -132,6 +130,13 @@ namespace CodeRift.Forms
             _isSubmitting = true;
             WasAnswerCorrect = false;
             await ShowIncorrectAnswerFeedbackAsync();
+        }
+
+        private void UpdateTimerUI(string text, Color color)
+        {
+            lblTimer.Text = text;
+            lblTimer.ForeColor = color;
+            OnTimerTick?.Invoke(text, color);
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -216,8 +221,7 @@ namespace CodeRift.Forms
             _timeLeftSeconds = _totalAllowedTime;
             _graceLeftSeconds = 3.0;
             _lastTickedSecond = -1;
-            lblTimer.Text = $"[SEC_SECURE: {Math.Ceiling(_timeLeftSeconds):00}s]";
-            lblTimer.ForeColor = DefaultAccent;
+            UpdateTimerUI($"[SEC_SECURE: {Math.Ceiling(_timeLeftSeconds):00}s]", DefaultAccent);
             _questionTimer.Start();
         }
 

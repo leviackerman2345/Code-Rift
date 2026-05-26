@@ -1297,6 +1297,15 @@ namespace CodeRift.Forms
         {
             Question challenge = QuestionManager.Instance.GetRandomQuestion(Level);
             BattleArenaQuestionForm questionForm = new BattleArenaQuestionForm();
+
+            // Wire up the OnTimerTick callback to keep BattleArenaForm's timer synchronized in real-time!
+            questionForm.OnTimerTick = (timeText, timeColor) =>
+            {
+                lblTimer.Text = timeText;
+                lblTimer.ForeColor = timeColor;
+                lblTimer.Update(); // Force visual redraw instantly
+            };
+
             questionForm.Populate(challenge, 1, 5);
 
             DialogResult questionResult = questionForm.ShowDialog();
