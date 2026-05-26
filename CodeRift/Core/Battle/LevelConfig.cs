@@ -12,7 +12,8 @@ namespace CodeRift.Core
             bool centerActorsByWidth = false,
             int actorIdleGap = 20,
             int playerAttackContactOverlap = 150,
-            int enemyAttackContactOverlap = 150)
+            int enemyAttackContactOverlap = 150,
+            int groundYOffset = 0)
         {
             Name = name;
             AssetFolder = assetFolder;
@@ -22,6 +23,7 @@ namespace CodeRift.Core
             ActorIdleGap = actorIdleGap;
             PlayerAttackContactOverlap = playerAttackContactOverlap;
             EnemyAttackContactOverlap = enemyAttackContactOverlap;
+            GroundYOffset = groundYOffset;
         }
 
         public string Name { get; }
@@ -39,6 +41,8 @@ namespace CodeRift.Core
         public int PlayerAttackContactOverlap { get; }
 
         public int EnemyAttackContactOverlap { get; }
+
+        public int GroundYOffset { get; }
     }
 
     public sealed class LevelConfig
@@ -49,7 +53,7 @@ namespace CodeRift.Core
             { 2, new LevelConfig(2, new EnemyConfig("VOID_CRAWLER", "enemy2", "enemy_level_2.jpeg", 1.75f, true, 40, 300, 340)) },
             { 3, new LevelConfig(3, new EnemyConfig("STRING_CORRUPTOR", "enemy3", "enemy_level_3.jpeg", 1.75f, true, 40, 300, 340)) },
             { 4, new LevelConfig(4, new EnemyConfig("ARRAY_CRASHER", "enemy4", "enemy_level_4.jpeg", 1.75f, true, 40, 300, 340)) },
-            { 5, new LevelConfig(5, new EnemyConfig("NULL_KING", "enemy5", "enemy_level_5.jpeg", 1.75f, true, 40, 300, 340), opensEpilogueOnWin: true) }
+            { 5, new LevelConfig(5, new EnemyConfig("NULL_KING", "enemy5", "enemy_level_5.jpeg", 1.75f, true, 40, 300, 340, 115), opensEpilogueOnWin: true) }
         };
 
         public int Level { get; }
@@ -71,6 +75,8 @@ namespace CodeRift.Core
         public int PlayerAttackContactOverlap => Enemy.PlayerAttackContactOverlap;
 
         public int EnemyAttackContactOverlap => Enemy.EnemyAttackContactOverlap;
+
+        public int EnemyGroundYOffset => Enemy.GroundYOffset;
 
         private LevelConfig(int level, EnemyConfig enemy, bool opensEpilogueOnWin = false)
         {

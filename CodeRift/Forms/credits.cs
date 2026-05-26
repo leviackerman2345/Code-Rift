@@ -290,7 +290,12 @@ namespace CodeRift.Forms
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             _creditsScrollTimer.Stop();
+            _creditsScrollTimer.Dispose();
             mainContainer.Paint -= MainContainer_Paint;
+            BackgroundImage = null;
+            _backgroundImage?.Dispose();
+            _backgroundImage = null;
+
 
             base.OnFormClosing(e);
         }

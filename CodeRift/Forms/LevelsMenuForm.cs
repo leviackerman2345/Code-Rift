@@ -23,6 +23,9 @@ namespace CodeRift.Forms
         private readonly Dictionary<Button, LevelButtonInfo> _buttonInfo = new Dictionary<Button, LevelButtonInfo>();
 
         private Image? _currentBackground;
+        private readonly Dictionary<string, Image> _preScaledBackgrounds = new Dictionary<string, Image>();
+        private int _cachedScaleWidth;
+        private int _cachedScaleHeight;
         private Image? _nextBackground;
         private Bitmap? _transitionBaseBackground;
         private string _currentBackgroundKey = Constants.IMG_BG_MENU;
@@ -57,21 +60,108 @@ namespace CodeRift.Forms
         private void SetupForm()
         {
             ConfigureWindow();
-            _currentBackground = ImageManager.Instance.GetImage(Constants.IMG_BG_MENU);
+            PreScaleBackgrounds();
             BackgroundImage = null;
             ConfigureBackgroundFadeTimer();
             ConfigureTitleLabel();
             UpdateLevelButtons();
             StyleBackButton();
+
+            // Enable double buffering recursively on all components to prevent flickering.
+            EnableDoubleBuffer(this);
+        }
+
+        private void PreScaleBackgrounds()
+        {
+            int targetWidth = ClientSize.Width;
+            int targetHeight = ClientSize.Height;
+
+            if (targetWidth <= 0 || targetHeight <= 0)
+            {
+                Size screenSize = Screen.PrimaryScreen?.Bounds.Size ?? new Size(1920, 1080);
+                targetWidth = screenSize.Width;
+                targetHeight = screenSize.Height;
+            }
+
+            if (_cachedScaleWidth == targetWidth && _cachedScaleHeight == targetHeight && _preScaledBackgrounds.Count > 0)
+            {
+                return;
+            }
+
+            _cachedScaleWidth = targetWidth;
+            _cachedScaleHeight = targetHeight;
+
+            foreach (var kvp in _preScaledBackgrounds.Values)
+            {
+                kvp.Dispose();
+            }
+            _preScaledBackgrounds.Clear();
+
+            string[] keys = {
+                Constants.IMG_BG_MENU,
+                Constants.IMG_BG_LEVEL1,
+                Constants.IMG_BG_LEVEL2,
+                Constants.IMG_BG_LEVEL3,
+                Constants.IMG_BG_LEVEL4,
+                Constants.IMG_BG_LEVEL5
+            };
+
+            foreach (string key in keys)
+            {
+                Image? original = ImageManager.Instance.GetImage(key);
+                if (original != null)
+                {
+                    Bitmap scaled = new Bitmap(targetWidth, targetHeight);
+                    using (Graphics g = Graphics.FromImage(scaled))
+                    {
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                        g.DrawImage(original, 0, 0, targetWidth, targetHeight);
+                    }
+                    _preScaledBackgrounds[key] = scaled;
+                }
+            }
+
+            _currentBackground = GetScaledBackground(_currentBackgroundKey);
+        }
+
+        private Image? GetScaledBackground(string key)
+        {
+            if (_preScaledBackgrounds.TryGetValue(key, out Image? scaled))
+            {
+                return scaled;
+            }
+            return ImageManager.Instance.GetImage(key);
+        }
+
+        private void EnableDoubleBuffer(Control control)
+        {
+            var property = typeof(Control).GetProperty("DoubleBuffered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            property?.SetValue(control, true, null);
+
+            foreach (Control child in control.Controls)
+            {
+                EnableDoubleBuffer(child);
+            }
         }
 
         private void ConfigureWindow()
         {
-            FormBorderStyle = FormBorderStyle.None;
-            WindowState = FormWindowState.Maximized;
+            SetupFullScreen();
             BackColor = Color.FromArgb(13, 13, 13);
             DoubleBuffered = true;
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
+            UpdateStyles();
+        }
+
+        private void SetupFullScreen()
+        {
+            this.FormBorderStyle = FormBorderStyle.None;
+            this.WindowState = FormWindowState.Maximized;
+            if (Screen.PrimaryScreen != null)
+            {
+                this.Bounds = Screen.PrimaryScreen.Bounds;
+            }
         }
 
         private void ConfigureBackgroundFadeTimer()
@@ -136,6 +226,8 @@ namespace CodeRift.Forms
             btnBack.Click += BackButton_Click;
         }
 
+        private Button? _hoveredLevelButton;
+
         private void LevelButton_MouseEnter(object? sender, EventArgs e)
         {
             if (sender is not Button button || !_buttonInfo.TryGetValue(button, out LevelButtonInfo? info))
@@ -143,16 +235,17 @@ namespace CodeRift.Forms
                 return;
             }
 
+            _hoveredLevelButton = button;
             BeginBackgroundFade(info.BackgroundKey);
-
-            if (IsLevelUnlocked(info.Level))
-            {
-                AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
-            }
         }
 
         private void LevelButton_MouseLeave(object? sender, EventArgs e)
         {
+            if (sender is Button button && _hoveredLevelButton == button)
+            {
+                _hoveredLevelButton = null;
+            }
+        
             BeginInvoke(new Action(() =>
             {
                 if (!IsDisposed && !IsPointerOverAnyLevelButton())
@@ -189,6 +282,7 @@ namespace CodeRift.Forms
             return ProgressManager.Instance.IsLevelUnlocked(level);
         }
 
+
         private static void ApplyLockedLevelStyle(Button button, int level)
         {
             MenuButtonStyle.ApplyLocked(button, $"[LOCKED] LEVEL {level}");
@@ -203,7 +297,42 @@ namespace CodeRift.Forms
         private void OpenLevel(int level)
         {
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
-            LaunchLevel(new BattleArenaForm(level));
+            BattleLoaderForm loader = new BattleLoaderForm(level);
+
+            loader.OnComplete = () =>
+            {
+                BattleArenaForm arena = new BattleArenaForm(level);
+                FormTransitionManager.ForceEndTransition(this);
+                LaunchLevel(arena);
+
+                // Seamlessly close the loader form after the Battle Arena has fully faded in (200ms)
+                Task.Delay(200).ContinueWith(_ =>
+                {
+                    BeginInvoke(new Action(() =>
+                    {
+                        if (loader is { IsDisposed: false, Disposing: false })
+                        {
+                            loader.Close();
+                        }
+                    }));
+                });
+            };
+
+            bool shown = FormTransitionManager.ShowChild(this, loader, () =>
+            {
+                if (loader.LoadSuccessful)
+                {
+                    return false;
+                }
+
+                UpdateLevelButtons();
+                return true;
+            });
+
+            if (!shown)
+            {
+                loader.Dispose();
+            }
         }
 
         private void BeginBackgroundFade(string backgroundKey)
@@ -214,7 +343,7 @@ namespace CodeRift.Forms
                 return;
             }
 
-            Image? background = ImageManager.Instance.GetImage(backgroundKey) ?? ImageManager.Instance.GetImage(Constants.IMG_BG_MENU);
+            Image? background = GetScaledBackground(backgroundKey) ?? GetScaledBackground(Constants.IMG_BG_MENU);
             if (background == null)
             {
                 return;
@@ -341,6 +470,10 @@ namespace CodeRift.Forms
         {
             base.OnResize(e);
             CenterControls();
+            if (Width > 0 && Height > 0)
+            {
+                PreScaleBackgrounds();
+            }
         }
 
         private void CenterControls()
@@ -407,7 +540,40 @@ namespace CodeRift.Forms
         {
             _backgroundFadeTimer.Stop();
             ReplaceTransitionBaseBackground(null);
+
+            foreach (var kvp in _preScaledBackgrounds)
+            {
+                kvp.Value.Dispose();
+            }
+            _preScaledBackgrounds.Clear();
+
             base.OnFormClosed(e);
+        }
+
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            base.OnVisibleChanged(e);
+            if (Visible)
+            {
+                SyncMenuVisualState();
+            }
+        }
+
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+            SyncMenuVisualState();
+        }
+
+        private void SyncMenuVisualState()
+        {
+            CenterControls();
+
+            Button[] buttons = { btnLevel1, btnLevel2, btnLevel3, btnLevel4, btnLevel5, btnBack };
+            foreach (Button btn in buttons)
+            {
+                MenuButtonStyle.SyncHoverVisualState(btn);
+            }
         }
     }
 }

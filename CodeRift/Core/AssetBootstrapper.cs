@@ -106,6 +106,18 @@ namespace CodeRift.Core
             {
                 LoadedCount = total,
                 TotalCount = total,
+                AssetName = "Battle Sprites",
+                Message = LanguageManager.Instance.Get("loading") + " Battle Data..."
+            });
+
+            // Preload all battle sprites at the splash screen to guarantee completely 
+            // instant level loads and zero background CPU starvation during the game.
+            await CodeRift.Forms.BattleArenaForm.PrewarmAllLevelsAsync();
+
+            progress?.Report(new AssetLoadProgress
+            {
+                LoadedCount = total,
+                TotalCount = total,
                 AssetName = string.Empty,
                 Message = LanguageManager.Instance.Get("loading_done")
             });

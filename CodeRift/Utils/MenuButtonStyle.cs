@@ -14,9 +14,11 @@ namespace CodeRift.Utils
         private static readonly HashSet<Button> ButtonsWithHoverEvents = new HashSet<Button>();
         private static readonly Dictionary<string, Image> HoverImagesBySize = new Dictionary<string, Image>();
         private static readonly Dictionary<Button, bool> HoverImageEnabledByButton = new Dictionary<Button, bool>();
+        private static readonly HashSet<Button> LockedButtons = new HashSet<Button>();
 
         public static void Apply(Button button, string text, bool useMenuSize = false, bool playClickSound = false, bool useHoverImage = true)
         {
+            LockedButtons.Remove(button);
             button.Text = text;
             button.BackColor = Color.Black;
             button.ForeColor = MatrixGreen;
@@ -40,7 +42,7 @@ namespace CodeRift.Utils
             {
                 button.MouseEnter += (_, _) =>
                 {
-                    if (!button.Enabled)
+                    if (!button.Enabled || LockedButtons.Contains(button))
                     {
                         return;
                     }
@@ -51,6 +53,10 @@ namespace CodeRift.Utils
 
                 button.MouseLeave += (_, _) =>
                 {
+                    if (LockedButtons.Contains(button))
+                    {
+                        return;
+                    }
                     SetHoverVisual(button, hovered: false);
                 };
             }
@@ -70,6 +76,12 @@ namespace CodeRift.Utils
                 return;
             }
 
+            if (LockedButtons.Contains(button))
+            {
+                SetHoverVisual(button, hovered: false);
+                return;
+            }
+
             Point pointer = button.PointToClient(Cursor.Position);
             bool hovered = button.ClientRectangle.Contains(pointer);
             SetHoverVisual(button, hovered);
@@ -77,6 +89,7 @@ namespace CodeRift.Utils
 
         public static void ApplyLocked(Button button, string text)
         {
+            LockedButtons.Add(button);
             button.Text = text;
             button.Enabled = true;
             button.Cursor = Cursors.No;
@@ -97,6 +110,14 @@ namespace CodeRift.Utils
 
         private static void SetHoverVisual(Button button, bool hovered)
         {
+            if (LockedButtons.Contains(button))
+            {
+                button.ForeColor = LockedGray;
+                button.FlatAppearance.BorderColor = LockedGray;
+                button.BackgroundImage = null;
+                return;
+            }
+
             if (!button.Enabled)
             {
                 button.ForeColor = MatrixGreen;

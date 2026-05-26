@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -7,6 +9,7 @@ namespace CodeRift.Core
     public static class FormTransitionManager
     {
         private static bool _isTransitioning;
+        private static readonly Dictionary<Form, CancellationTokenSource> ActiveFades = new Dictionary<Form, CancellationTokenSource>();
 
         public static bool IsTransitioning => _isTransitioning;
 
@@ -37,9 +40,11 @@ namespace CodeRift.Core
                 bool shouldShowOwner = onChildClosed?.Invoke() ?? true;
                 if (!shouldShowOwner || owner.IsDisposed)
                 {
+                    CancelActiveFade(child);
                     return;
                 }
 
+                CancelActiveFade(child);
                 RestoreOwnerForm(owner, ownerState, ownerBounds);
             };
 
@@ -83,25 +88,27 @@ namespace CodeRift.Core
 
         private static void ShowNextForm(Form owner, Form child)
         {
+            // Cancel any active fade-in on the owner since it is now being hidden.
+            CancelActiveFade(owner);
+
             if (!child.IsDisposed)
             {
-                child.Opacity = 1d;
                 child.Update();
                 child.Activate();
+                _ = FadeInFormAsync(child, () =>
+                {
+                    EndTransition(owner);
+                });
             }
-
-            if (!owner.IsDisposed)
+            else
             {
-                owner.Hide();
+                EndTransition(owner);
             }
-
-            EndTransition(owner);
         }
 
         private static void RestoreOwnerForm(Form owner, FormWindowState ownerState, Rectangle ownerBounds)
         {
-            owner.Opacity = 0d;
-            owner.SuspendLayout();
+            CancelActiveFade(owner);
 
             if (ownerState == FormWindowState.Maximized)
             {
@@ -113,10 +120,15 @@ namespace CodeRift.Core
                 owner.Bounds = ownerBounds;
             }
 
-            owner.Show();
-            owner.ResumeLayout(performLayout: true);
+            // Since the owner form was never hidden, we just instantly bring it back into focus!
+            // Zero lag, zero reloading, zero opacity fades!
             owner.Activate();
-            _ = FadeInOwnerAsync(owner);
+            EndTransition(owner);
+        }
+
+        public static void ForceEndTransition(Form owner)
+        {
+            EndTransition(owner);
         }
 
         private static void EndTransition(Form owner)
@@ -129,25 +141,89 @@ namespace CodeRift.Core
             _isTransitioning = false;
         }
 
-        private static async Task FadeInOwnerAsync(Form owner)
+        private static void CancelActiveFade(Form form)
         {
-            if (owner.IsDisposed)
+            lock (ActiveFades)
             {
+                if (ActiveFades.TryGetValue(form, out var cts))
+                {
+                    try
+                    {
+                        cts.Cancel();
+                        cts.Dispose();
+                    }
+                    catch
+                    {
+                        // Ignore occasional cleanup exceptions
+                    }
+                    ActiveFades.Remove(form);
+                }
+            }
+        }
+
+        private static async Task FadeInFormAsync(Form form, Action? onComplete = null)
+        {
+            if (form.IsDisposed)
+            {
+                onComplete?.Invoke();
                 return;
             }
 
-            const int steps = 10;
-            const int delayMs = 16;
-
-            for (int i = 0; i < steps; i++)
+            CancellationTokenSource cts;
+            lock (ActiveFades)
             {
-                if (owner.IsDisposed)
+                if (ActiveFades.TryGetValue(form, out var existingCts))
                 {
-                    return;
+                    try
+                    {
+                        existingCts.Cancel();
+                        existingCts.Dispose();
+                    }
+                    catch
+                    {
+                        // Ignore
+                    }
                 }
 
-                owner.Opacity = Math.Min(1d, (i + 1) / (double)steps);
-                await Task.Delay(delayMs);
+                cts = new CancellationTokenSource();
+                ActiveFades[form] = cts;
+            }
+
+            CancellationToken token = cts.Token;
+
+            try
+            {
+                // Smooth 60fps-like visual fade
+                const int steps = 12;
+                const int delayMs = 10;
+
+                for (int i = 0; i < steps; i++)
+                {
+                    if (token.IsCancellationRequested || form.IsDisposed)
+                    {
+                        return;
+                    }
+
+                    form.Opacity = Math.Min(1d, (i + 1) / (double)steps);
+                    
+                    await Task.Delay(delayMs, token);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // Expected when canceled
+            }
+            finally
+            {
+                lock (ActiveFades)
+                {
+                    if (ActiveFades.TryGetValue(form, out var currentCts) && currentCts == cts)
+                    {
+                        ActiveFades.Remove(form);
+                    }
+                }
+                cts.Dispose();
+                onComplete?.Invoke();
             }
         }
     }

@@ -94,6 +94,11 @@ namespace CodeRift.Forms
         private readonly Random _vfxRandom = new();
         private readonly Task _animationLoadTask;
 
+        // Tracks in-flight prewarm tasks keyed by level so hover-triggered loads
+        // are never duplicated when the user hovers the same button twice.
+        private static readonly Dictionary<int, Task> PrewarmTasks = new();
+        private static readonly object PrewarmLock = new();
+
         // Card mapping for turn selection and lock validation.
         private readonly Dictionary<PictureBox, int> _cardIdByPicture = new();
         private readonly Dictionary<int, PictureBox> _pictureByCardId = new();
@@ -117,14 +122,23 @@ namespace CodeRift.Forms
             WindowState = FormWindowState.Maximized;
             DoubleBuffered = true;
             SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
-            EnableDoubleBuffer(pnlBattleZone);
+            EnableDoubleBuffer(this);
 
             picPlayerPortrait.Visible = false;
             picEnemyPortrait.Visible = false;
             SetupSpriteCanvas();
             SetupBackgroundTintLayer();
             ConfigureActorRenderSizes();
+
+            // Pre-load the background synchronously so the form is never shown as a plain black rectangle.
+            // Backgrounds are already decoded by the splash/asset bootstrapper, so this clone is near-instant.
+            LoadBattleBackground();
+
+            // Always run LoadAnimationAssets to populate _playerActor / _enemyActor frame arrays.
+            // If PrewarmAsync already ran for this level, BattleAssetCache is warm, so GetCachedImage
+            // returns cached clones instantly — making this task complete in near-zero time.
             _animationLoadTask = Task.Run(LoadAnimationAssets);
+
             PrepareBattleScreen();
         }
 
@@ -132,6 +146,190 @@ namespace CodeRift.Forms
         {
             var property = typeof(Control).GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic);
             property?.SetValue(control, true, null);
+
+            foreach (Control child in control.Controls)
+            {
+                EnableDoubleBuffer(child);
+            }
+        }
+
+        /// <summary>
+        /// Begins decoding and caching all sprite frames for <paramref name="level"/> on a
+        /// background thread.  Safe to call multiple times — duplicate calls for the same
+        /// level are collapsed into one shared task so no work is repeated.
+        /// Call this from a hover event so assets are ready before the user clicks.
+        /// </summary>
+        public static void PrewarmAsync(int level)
+        {
+            lock (PrewarmLock)
+            {
+                if (PrewarmTasks.ContainsKey(level))
+                {
+                    return; // Already warming or fully cached.
+                }
+
+                Task prewarmTask = Task.Run(() => PrewarmLevel(level));
+                PrewarmTasks[level] = prewarmTask;
+            }
+        }
+
+        /// <summary>
+        /// Awaits the pre-loading and caching of ALL battle assets for the entire game.
+        /// Call this during the Splash Screen to guarantee completely instant transition
+        /// performance with zero CPU/Disk I/O spikes later on.
+        /// </summary>
+        public static async Task PrewarmAllLevelsAsync()
+        {
+            var tasks = new List<Task>();
+            for (int i = 1; i <= 5; i++)
+            {
+                lock (PrewarmLock)
+                {
+                    if (!PrewarmTasks.ContainsKey(i))
+                    {
+                        Task t = Task.Run(() => PrewarmLevel(i));
+                        PrewarmTasks[i] = t;
+                        tasks.Add(t);
+                    }
+                    else
+                    {
+                        tasks.Add(PrewarmTasks[i]);
+                    }
+                }
+            }
+            await Task.WhenAll(tasks);
+        }
+
+        public static async Task PrewarmLevelWithProgressAsync(int level, Action<string, double> progressReport)
+        {
+            Task loadTask;
+            bool isExisting = false;
+
+            lock (PrewarmLock)
+            {
+                if (PrewarmTasks.TryGetValue(level, out Task? existingTask))
+                {
+                    loadTask = existingTask;
+                    isExisting = true;
+                }
+                else
+                {
+                    loadTask = Task.Run(() =>
+                    {
+                        try
+                        {
+                            LevelConfig config = LevelConfig.ForLevel(level);
+                            string playerPath = ResolveAssetPath("Assets", "Images", "player");
+                            string enemyRoot   = ResolveAssetPath("Assets", "Images", "enemies");
+                            string enemyFolder = Directory.Exists(Path.Combine(enemyRoot, config.Enemy.AssetFolder))
+                                ? config.Enemy.AssetFolder
+                                : DefaultEnemyAssetFolder;
+                            string enemyPath   = Path.Combine(enemyRoot, enemyFolder);
+
+                            double step = 100.0 / 8.0;
+                            double currentProgress = 0;
+
+                            progressReport?.Invoke("DECRYPTING PLAYER RUN SEQUENCES...", currentProgress);
+                            PrewarmFrameSequence(Path.Combine(playerPath, "run"), "player_run", AttackFrameCount, applyTransparency: true);
+                            currentProgress += step;
+
+                            progressReport?.Invoke("OPTIMIZING PLAYER ATTACK VECTORS...", currentProgress);
+                            PrewarmFrameSequence(Path.Combine(playerPath, "attack"), "player_attack", AttackFrameCount, applyTransparency: true);
+                            currentProgress += step;
+
+                            progressReport?.Invoke("CACHING PLAYER REACTION FRAMES...", currentProgress);
+                            PrewarmFrameSequence(Path.Combine(playerPath, "hurt"), "player_hurt", AttackFrameCount, applyTransparency: false);
+                            currentProgress += step;
+
+                            progressReport?.Invoke("STABILIZING PLAYER COGNITIVE STATE...", currentProgress);
+                            PrewarmFrameSequence(Path.Combine(playerPath, "ide"), "player_ide", IdleFrameCount, applyTransparency: false);
+                            currentProgress += step;
+
+                            progressReport?.Invoke($"INITIALIZING {config.EnemyName.ToUpperInvariant()} INTERFACES...", currentProgress);
+                            PrewarmFrameSequence(Path.Combine(enemyPath, "run"), $"{enemyFolder}_run", AttackFrameCount, applyTransparency: false);
+                            currentProgress += step;
+
+                            progressReport?.Invoke($"DECODING {config.EnemyName.ToUpperInvariant()} ATTACK LOGIC...", currentProgress);
+                            PrewarmFrameSequence(Path.Combine(enemyPath, "attack"), $"{enemyFolder}_attack", AttackFrameCount, applyTransparency: true);
+                            currentProgress += step;
+
+                            progressReport?.Invoke($"CACHING {config.EnemyName.ToUpperInvariant()} REACTION ARRAYS...", currentProgress);
+                            PrewarmFrameSequence(Path.Combine(enemyPath, "hurt"), $"{enemyFolder}_hurt", AttackFrameCount, applyTransparency: false);
+                            currentProgress += step;
+
+                            progressReport?.Invoke($"STABILIZING {config.EnemyName.ToUpperInvariant()} COGNITIVE STATE...", currentProgress);
+                            PrewarmFrameSequence(Path.Combine(enemyPath, "ide"), $"{enemyFolder}_ide", IdleFrameCount, applyTransparency: false);
+                            currentProgress += step;
+
+                            progressReport?.Invoke("DECRYPTION SYNCHRONIZED. READY FOR COMBAT.", 100.0);
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine("Prewarm Error: " + ex.Message);
+                            progressReport?.Invoke("ERROR: DECRYPTION SCHEMATIC TAMPERED.", 100.0);
+                        }
+                    });
+
+                    PrewarmTasks[level] = loadTask;
+                }
+            }
+
+            if (isExisting)
+            {
+                progressReport?.Invoke("DECRYPTION SYNCHRONIZED. READY FOR COMBAT.", 100.0);
+            }
+
+            await loadTask;
+        }
+
+        private static void PrewarmLevel(int level)
+        {
+            try
+            {
+                LevelConfig config = LevelConfig.ForLevel(level);
+
+                // Player frames — cache keys are path-based so they are shared with
+                // any future BattleArenaForm instance for this level.
+                string playerPath = ResolveAssetPath("Assets", "Images", "player");
+                PrewarmFrameSequence(Path.Combine(playerPath, "run"),    "player_run",    AttackFrameCount, applyTransparency: true);
+                PrewarmFrameSequence(Path.Combine(playerPath, "attack"), "player_attack", AttackFrameCount, applyTransparency: true);
+                PrewarmFrameSequence(Path.Combine(playerPath, "hurt"),   "player_hurt",   AttackFrameCount, applyTransparency: false);
+                PrewarmFrameSequence(Path.Combine(playerPath, "ide"),    "player_ide",    IdleFrameCount,   applyTransparency: false);
+
+                // Enemy frames.
+                string enemyRoot   = ResolveAssetPath("Assets", "Images", "enemies");
+                string enemyFolder = Directory.Exists(Path.Combine(enemyRoot, config.Enemy.AssetFolder))
+                    ? config.Enemy.AssetFolder
+                    : DefaultEnemyAssetFolder;
+                string enemyPath   = Path.Combine(enemyRoot, enemyFolder);
+
+                PrewarmFrameSequence(Path.Combine(enemyPath, "run"),    $"{enemyFolder}_run",    AttackFrameCount, applyTransparency: false);
+                PrewarmFrameSequence(Path.Combine(enemyPath, "attack"), $"{enemyFolder}_attack", AttackFrameCount, applyTransparency: true);
+                PrewarmFrameSequence(Path.Combine(enemyPath, "hurt"),   $"{enemyFolder}_hurt",   AttackFrameCount, applyTransparency: false);
+                PrewarmFrameSequence(Path.Combine(enemyPath, "ide"),    $"{enemyFolder}_ide",    IdleFrameCount,   applyTransparency: false);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("Prewarm Error: " + ex.Message);
+            }
+        }
+
+        private static void PrewarmFrameSequence(string folderPath, string prefix, int frameCount, bool applyTransparency)
+        {
+            if (!Directory.Exists(folderPath))
+            {
+                return;
+            }
+
+            for (int i = 0; i < frameCount; i++)
+            {
+                string path = Path.Combine(folderPath, $"{prefix}_{i + 1:D2}.png");
+                if (File.Exists(path))
+                {
+                    // LoadFrame populates BattleAssetCache; the returned clone is discarded here.
+                    using Image frame = LoadFrame(path, applyTransparency);
+                }
+            }
         }
 
         private void SetupSpriteCanvas()
@@ -560,7 +758,7 @@ namespace CodeRift.Forms
             int groundBaseline = CalculateGroundBaseline();
 
             _playerActor.IdleY = groundBaseline - _playerActor.RenderSize.Height;
-            _enemyActor.IdleY = groundBaseline - _enemyActor.RenderSize.Height;
+            _enemyActor.IdleY = groundBaseline - _enemyActor.RenderSize.Height + _levelConfig.EnemyGroundYOffset;
 
             UpdateActorLayout();
             SetActorIntroRunPositions();
@@ -857,7 +1055,10 @@ namespace CodeRift.Forms
             if (_pendingIncorrectAnswerPopup)
             {
                 _pendingIncorrectAnswerPopup = false;
-                ShowIncorrectAnswerMessage();
+                if (_battleEngine.CheckBattleResult() != BattleResult.PlayerDefeat && _battleEngine.PlayerHP > 0)
+                {
+                    ShowIncorrectAnswerMessage();
+                }
                 EvaluateBattleResult();
             }
         }
@@ -878,7 +1079,9 @@ namespace CodeRift.Forms
                     return;
                 }
 
-                LoadBattleAssets();
+                // Background was already set in the constructor; load the remaining UI assets.
+                LoadPortraitAssets();
+                LoadCardAssets();
                 InitializeBattleRound();
                 StartBattleAudioAndDebugTools();
             }
@@ -899,6 +1102,9 @@ namespace CodeRift.Forms
             LoadPortraitAssets();
             LoadCardAssets();
         }
+
+        // Note: LoadBattleBackground is also called from the constructor to pre-paint
+        // the background before the form becomes visible (prevents the black-screen flash).
 
         private void LoadBattleBackground()
         {
@@ -1159,7 +1365,10 @@ namespace CodeRift.Forms
         private void HandleImmediateEnemyRetaliation()
         {
             UpdatePlayerHudFromEngine();
-            ShowIncorrectAnswerMessage();
+            if (_battleEngine.CheckBattleResult() != BattleResult.PlayerDefeat && _battleEngine.PlayerHP > 0)
+            {
+                ShowIncorrectAnswerMessage();
+            }
             EvaluateBattleResult();
         }
 
@@ -1223,16 +1432,16 @@ namespace CodeRift.Forms
 
         private Color GetBackgroundShadeColor()
         {
-            // Player attack phase: 80% black from player attack start through enemy hurt end.
+            // Player attack phase: pure black from player attack start through enemy hurt end.
             if (_currentState == BattleState.PlayerAttacking || _currentState == BattleState.EnemyHurting)
             {
-                return Color.FromArgb(204, 0, 0, 0);
+                return Color.FromArgb(255, 0, 0, 0);
             }
 
-            // Enemy attack phase: red danger shade.
+            // Enemy attack phase: shaded red danger overlay.
             if (_currentState == BattleState.EnemyAttacking || _currentState == BattleState.PlayerHurting || _currentState == BattleState.EnemyReturning)
             {
-                return Color.FromArgb(105, 150, 0, 0);
+                return Color.FromArgb(120, 200, 0, 0);
             }
 
             return Color.Transparent;

@@ -24,7 +24,7 @@ namespace CodeRift.Managers
         private ProgressManager()
         {
             _saveFilePath = BuildSaveFilePath();
-            LoadProgress();
+            ResetProgress();
         }
 
         public static ProgressManager Instance => _instance;
@@ -56,6 +56,12 @@ namespace CodeRift.Managers
         public bool IsLevelUnlocked(int level)
         {
             return level >= 1 && level <= UnlockedLevels;
+        }
+
+        public void ResetProgress()
+        {
+            _highestCompletedLevel = DefaultHighestCompletedLevel;
+            SaveProgress();
         }
 
         private static string BuildSaveFilePath()

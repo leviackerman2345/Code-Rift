@@ -340,5 +340,29 @@ namespace CodeRift.Forms
             }
             return base.ProcessCmdKey(ref msg, keyData);
         }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            volIcon.Image = null;
+            phFlagIcon.Image = null;
+            enFlagIcon.Image = null;
+
+            _hoverImage?.Dispose();
+            _hoverImage = null;
+
+            _iconVolume?.Dispose();
+            _iconVolume = null;
+
+            _iconMute?.Dispose();
+            _iconMute = null;
+
+            _flagPH?.Dispose();
+            _flagPH = null;
+
+            _flagEN?.Dispose();
+            _flagEN = null;
+
+            base.OnFormClosing(e);
+        }
     }
 }

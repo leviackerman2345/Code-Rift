@@ -86,6 +86,20 @@ namespace CodeRift.Forms
             ConfigureContinueButton();
             Controls.Add(_btnContinue);
             _btnContinue.BringToFront();
+
+            // Enable double buffering recursively on all panels/controls to prevent transition flickering.
+            EnableDoubleBuffer(this);
+        }
+
+        private void EnableDoubleBuffer(Control control)
+        {
+            var property = typeof(Control).GetProperty("DoubleBuffered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            property?.SetValue(control, true, null);
+
+            foreach (Control child in control.Controls)
+            {
+                EnableDoubleBuffer(child);
+            }
         }
 
         private void ConfigureContinueButton()

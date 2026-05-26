@@ -77,17 +77,25 @@ namespace CodeRift.Forms
             Image? menuBg = ImageManager.Instance.GetImage(Constants.IMG_BG_MENU);
             if (menuBg != null)
             {
-                Bitmap dimmed = new Bitmap(menuBg.Width, menuBg.Height);
-                using (Graphics g = Graphics.FromImage(dimmed))
+                // Pre-scale the image to exactly the screen size. This prevents GDI+ from having 
+                // to perform an expensive stretch operation on every single Opacity tick.
+                Rectangle bounds = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080);
+                Bitmap preScaledDimmed = new Bitmap(bounds.Width, bounds.Height);
+                using (Graphics g = Graphics.FromImage(preScaledDimmed))
                 {
+                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                    
                     ColorMatrix matrix = new ColorMatrix { Matrix33 = 0.4f }; // Even darker for menu
                     ImageAttributes attributes = new ImageAttributes();
                     attributes.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
-                    g.DrawImage(menuBg, new Rectangle(0, 0, dimmed.Width, dimmed.Height), 0, 0, menuBg.Width, menuBg.Height, GraphicsUnit.Pixel, attributes);
+                    
+                    g.DrawImage(menuBg, new Rectangle(0, 0, bounds.Width, bounds.Height), 0, 0, menuBg.Width, menuBg.Height, GraphicsUnit.Pixel, attributes);
                 }
-                _backgroundImage = dimmed;
+                
+                _backgroundImage = preScaledDimmed;
                 this.BackgroundImage = _backgroundImage;
-                this.BackgroundImageLayout = ImageLayout.Stretch;
+                this.BackgroundImageLayout = ImageLayout.None; // Massive performance boost during transitions
             }
 
             // Reuse splash title for menu branding.
@@ -251,6 +259,15 @@ namespace CodeRift.Forms
                 return true;
             }
             return base.ProcessCmdKey(ref msg, keyData);
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            ProgressManager.Instance.ResetProgress();
+            BackgroundImage = null;
+            _backgroundImage?.Dispose();
+            _backgroundImage = null;
+            base.OnFormClosing(e);
         }
     }
 }
