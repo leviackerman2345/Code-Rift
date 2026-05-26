@@ -151,9 +151,7 @@ namespace CodeRift.Forms
 
         private void LoadAssets()
         {
-            string hoverPath = Path.Combine(Application.StartupPath, @"Assets\Images\ui\button_hover.png");
-            if (!File.Exists(hoverPath)) hoverPath = Path.Combine(Application.StartupPath, @"..\..\..\Assets\Images\ui\button_hover.png");
-            
+            string hoverPath = AssetPathHelper.ResolveAssetPath("Assets", "Images", "ui", "button_hover.png");
             if (File.Exists(hoverPath))
             {
                 try { _hoverImage = Image.FromFile(hoverPath); } catch { }
@@ -175,78 +173,123 @@ namespace CodeRift.Forms
                     }
 
                     btn.FlatAppearance.MouseOverBackColor = matrixGreen;
-                    btn.Click += (s, e) => AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
-                    btn.MouseEnter += (s, e) => {
-                        AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
-                        btn.ForeColor = Color.Black;
-                        btn.FlatAppearance.BorderColor = Color.Black;
-                        if (_hoverImage != null)
-                        {
-                            btn.BackgroundImage = _hoverImage;
-                            btn.BackgroundImageLayout = ImageLayout.Stretch;
-                        }
-                    };
-                    btn.MouseLeave += (s, e) => {
-                        btn.BackgroundImage = null;
-                        if (btn == btnFilipino || btn == btnEnglish)
-                        {
-                            ApplyLanguageSelection();
-                        }
-                        else if (btn == btnSfxToggle)
-                        {
-                            UpdateSfxToggleButton();
-                        }
-                        else
-                        {
-                            btn.ForeColor = matrixGreen;
-                            btn.FlatAppearance.BorderColor = matrixGreen;
-                        }
-                    };
+                    AttachButtonHoverEvents(btn, matrixGreen);
                 }
             }
+        }
+
+        private void AttachButtonHoverEvents(Button button, Color matrixGreen)
+        {
+            button.Click += Button_ClickSfx;
+            button.MouseEnter += (_, _) => ApplyButtonHoverState(button);
+            button.MouseLeave += (_, _) => ResetButtonHoverState(button, matrixGreen);
+        }
+
+        private static void Button_ClickSfx(object? sender, EventArgs e)
+        {
+            AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
+        }
+
+        private void ApplyButtonHoverState(Button button)
+        {
+            AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
+            button.ForeColor = Color.Black;
+            button.FlatAppearance.BorderColor = Color.Black;
+
+            if (_hoverImage != null)
+            {
+                button.BackgroundImage = _hoverImage;
+                button.BackgroundImageLayout = ImageLayout.Stretch;
+            }
+        }
+
+        private void ResetButtonHoverState(Button button, Color matrixGreen)
+        {
+            button.BackgroundImage = null;
+            if (button == btnFilipino || button == btnEnglish)
+            {
+                ApplyLanguageSelection();
+                return;
+            }
+
+            if (button == btnSfxToggle)
+            {
+                UpdateSfxToggleButton();
+                return;
+            }
+
+            button.ForeColor = matrixGreen;
+            button.FlatAppearance.BorderColor = matrixGreen;
         }
 
         private void SetupEvents()
         {
             // NOTE: volume currently updates UI state only; no audio engine volume binding yet.
-            btnBack.Click += (s, e) => this.Close();
+            btnBack.Click += BackButton_Click;
+            volIcon.Click += VolumeIcon_Click;
+            volSlider.ValueChanged += VolumeSlider_ValueChanged;
+            btnFilipino.Click += FilipinoButton_Click;
+            btnEnglish.Click += EnglishButton_Click;
+            btnSfxToggle.Click += SfxToggleButton_Click;
+        }
 
-            volIcon.Click += (s, e) => {
-                _isMuted = !_isMuted;
-                if (_isMuted) {
-                    _lastVolume = volSlider.Value;
-                    volSlider.Value = 0;
-                    volIcon.Image = _iconMute;
-                    AudioManager.Instance.SetVolume(0);
-                } else {
-                    volSlider.Value = _lastVolume > 0 ? _lastVolume : 80;
-                    volIcon.Image = _iconVolume;
-                    AudioManager.Instance.SetVolume(volSlider.Value);
-                }
-            };
+        private void BackButton_Click(object? sender, EventArgs e)
+        {
+            Close();
+        }
 
-            volSlider.ValueChanged += (s, e) => {
-                if (volSlider.Value > 0) {
-                    _isMuted = false;
-                    volIcon.Image = _iconVolume;
-                } else {
-                    _isMuted = true;
-                    volIcon.Image = _iconMute;
-                }
-                AudioManager.Instance.SetVolume(volSlider.Value);
-            };
+        private void VolumeIcon_Click(object? sender, EventArgs e)
+        {
+            _isMuted = !_isMuted;
+            if (_isMuted)
+            {
+                _lastVolume = volSlider.Value;
+                volSlider.Value = 0;
+                volIcon.Image = _iconMute;
+                AudioManager.Instance.SetVolume(0);
+                return;
+            }
 
-            btnFilipino.Click += (s, e) => SwitchLanguage(Constants.LANG_PH);
-            btnEnglish.Click += (s, e) => SwitchLanguage(Constants.LANG_EN);
-            btnSfxToggle.Click += (s, e) => {
-                AudioManager.Instance.IsSFXEnabled = !AudioManager.Instance.IsSFXEnabled;
-                UpdateSfxToggleButton();
+            volSlider.Value = _lastVolume > 0 ? _lastVolume : 80;
+            volIcon.Image = _iconVolume;
+            AudioManager.Instance.SetVolume(volSlider.Value);
+        }
 
-                if (AudioManager.Instance.IsSFXEnabled)
-                {
-                    AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
-                }
-            };
+        private void VolumeSlider_ValueChanged(object? sender, EventArgs e)
+        {
+            if (volSlider.Value > 0)
+            {
+                _isMuted = false;
+                volIcon.Image = _iconVolume;
+            }
+            else
+            {
+                _isMuted = true;
+                volIcon.Image = _iconMute;
+            }
+
+            AudioManager.Instance.SetVolume(volSlider.Value);
+        }
+
+        private void FilipinoButton_Click(object? sender, EventArgs e)
+        {
+            SwitchLanguage(Constants.LANG_PH);
+        }
+
+        private void EnglishButton_Click(object? sender, EventArgs e)
+        {
+            SwitchLanguage(Constants.LANG_EN);
+        }
+
+        private void SfxToggleButton_Click(object? sender, EventArgs e)
+        {
+            AudioManager.Instance.IsSFXEnabled = !AudioManager.Instance.IsSFXEnabled;
+            UpdateSfxToggleButton();
+
+            if (AudioManager.Instance.IsSFXEnabled)
+            {
+                AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
+            }
         }
 
         private void SwitchLanguage(string languageCode)

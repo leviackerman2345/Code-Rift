@@ -57,7 +57,7 @@ namespace CodeRift.Forms
             Controls.Add(_skipButton);
             Controls.Add(_backButton);
 
-            Click += (_, _) => AdvanceDialogue();
+            Click += Form_Click;
         }
 
         private void ConfigureDialogueBox()
@@ -68,7 +68,7 @@ namespace CodeRift.Forms
             _dialogueBox.Size = new Size(1080, 150);
             _dialogueBox.SizeMode = PictureBoxSizeMode.StretchImage;
             _dialogueBox.Image = ImageManager.Instance.GetImage(Constants.IMG_UI_DIALOGUE);
-            _dialogueBox.Click += (_, _) => AdvanceDialogue();
+            _dialogueBox.Click += DialogueElement_Click;
 
             _dialogueLabel.ForeColor = Color.FromArgb(0, 255, 65);
             _dialogueLabel.Font = new Font("Courier New", 18, FontStyle.Bold);
@@ -77,7 +77,7 @@ namespace CodeRift.Forms
             _dialogueLabel.Location = new Point(50, 25);
             _dialogueLabel.Size = new Size(_dialogueBox.Width - 100, _dialogueBox.Height - 55);
             _dialogueLabel.TextAlign = ContentAlignment.MiddleCenter;
-            _dialogueLabel.Click += (_, _) => AdvanceDialogue();
+            _dialogueLabel.Click += DialogueElement_Click;
 
             _clickHintLabel.Text = "[Click anywhere to continue]";
             _clickHintLabel.Font = new Font("Courier New", 11, FontStyle.Bold | FontStyle.Italic);
@@ -86,7 +86,7 @@ namespace CodeRift.Forms
             _clickHintLabel.Parent = _dialogueBox;
             _clickHintLabel.AutoSize = true;
             _clickHintLabel.Location = new Point(_dialogueBox.Width - 300, _dialogueBox.Height - 35);
-            _clickHintLabel.Click += (_, _) => AdvanceDialogue();
+            _clickHintLabel.Click += DialogueElement_Click;
             _clickHintLabel.BringToFront();
         }
 
@@ -95,29 +95,17 @@ namespace CodeRift.Forms
             MenuButtonStyle.Apply(_backButton, "[BACK]");
             _backButton.Size = new Size(180, 50);
             _backButton.Location = new Point(28, 24);
-            _backButton.Click += (_, _) =>
-            {
-                AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
-                Close();
-            };
+            _backButton.Click += BackButton_Click;
 
             MenuButtonStyle.Apply(_skipButton, "[SKIP]");
             _skipButton.Size = new Size(180, 50);
             _skipButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             _skipButton.Location = new Point(Width - _skipButton.Width - 28, 24);
-            _skipButton.Click += (_, _) =>
-            {
-                AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
-                FinishStory();
-            };
+            _skipButton.Click += SkipButton_Click;
 
             MenuButtonStyle.Apply(_finishButton, _config.FinishButtonText, useMenuSize: true);
             _finishButton.Visible = false;
-            _finishButton.Click += (_, _) =>
-            {
-                AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
-                FinishStory();
-            };
+            _finishButton.Click += FinishButton_Click;
         }
 
         private void ConfigureTimers()
@@ -225,6 +213,34 @@ namespace CodeRift.Forms
             _dialogueLabel.Text = string.Empty;
             _isTyping = true;
             _typeTimer.Start();
+        }
+
+        private void Form_Click(object? sender, EventArgs e)
+        {
+            AdvanceDialogue();
+        }
+
+        private void DialogueElement_Click(object? sender, EventArgs e)
+        {
+            AdvanceDialogue();
+        }
+
+        private void BackButton_Click(object? sender, EventArgs e)
+        {
+            AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
+            Close();
+        }
+
+        private void SkipButton_Click(object? sender, EventArgs e)
+        {
+            AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
+            FinishStory();
+        }
+
+        private void FinishButton_Click(object? sender, EventArgs e)
+        {
+            AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
+            FinishStory();
         }
 
         private void AdvanceDialogue()

@@ -9,6 +9,7 @@ namespace CodeRift.Utils
     public static class MenuButtonStyle
     {
         private static readonly Color MatrixGreen = Color.FromArgb(0, 255, 65);
+        private static readonly Color LockedGray = Color.FromArgb(110, 110, 110);
         private static readonly Color HoverBlack = Color.Black;
         private static readonly HashSet<Button> ButtonsWithHoverEvents = new HashSet<Button>();
         private static readonly Dictionary<string, Image> HoverImagesBySize = new Dictionary<string, Image>();
@@ -72,6 +73,26 @@ namespace CodeRift.Utils
             Point pointer = button.PointToClient(Cursor.Position);
             bool hovered = button.ClientRectangle.Contains(pointer);
             SetHoverVisual(button, hovered);
+        }
+
+        public static void ApplyLocked(Button button, string text)
+        {
+            button.Text = text;
+            button.Enabled = true;
+            button.Cursor = Cursors.No;
+            button.BackColor = Color.FromArgb(20, 20, 20);
+            button.ForeColor = LockedGray;
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 2;
+            button.FlatAppearance.BorderColor = LockedGray;
+            button.FlatAppearance.MouseOverBackColor = Color.FromArgb(20, 20, 20);
+            button.FlatAppearance.MouseDownBackColor = Color.FromArgb(20, 20, 20);
+            button.Font = new Font("Courier New", 18, FontStyle.Bold | FontStyle.Italic);
+            button.BackgroundImage = null;
+            button.TabStop = false;
+            button.UseVisualStyleBackColor = false;
+            HoverImageEnabledByButton[button] = false;
+            SetHoverVisual(button, hovered: false);
         }
 
         private static void SetHoverVisual(Button button, bool hovered)

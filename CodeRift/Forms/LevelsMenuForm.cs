@@ -17,7 +17,6 @@ namespace CodeRift.Forms
         private const int LevelBackgroundShadeAlpha = 150;
 
         private static readonly Color MatrixGreen = Color.FromArgb(0, 255, 65);
-        private static readonly Color LockedGray = Color.FromArgb(110, 110, 110);
 
         private readonly System.Windows.Forms.Timer _backgroundFadeTimer = new System.Windows.Forms.Timer();
         private readonly HashSet<Button> _wiredButtons = new HashSet<Button>();
@@ -57,26 +56,37 @@ namespace CodeRift.Forms
 
         private void SetupForm()
         {
+            ConfigureWindow();
+            _currentBackground = ImageManager.Instance.GetImage(Constants.IMG_BG_MENU);
+            BackgroundImage = null;
+            ConfigureBackgroundFadeTimer();
+            ConfigureTitleLabel();
+            UpdateLevelButtons();
+            StyleBackButton();
+        }
+
+        private void ConfigureWindow()
+        {
             FormBorderStyle = FormBorderStyle.None;
             WindowState = FormWindowState.Maximized;
             BackColor = Color.FromArgb(13, 13, 13);
             DoubleBuffered = true;
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
+        }
 
-            _currentBackground = ImageManager.Instance.GetImage(Constants.IMG_BG_MENU);
-            BackgroundImage = null;
-
+        private void ConfigureBackgroundFadeTimer()
+        {
             _backgroundFadeTimer.Interval = BackgroundFadeIntervalMs;
             _backgroundFadeTimer.Tick += BackgroundFadeTimer_Tick;
+        }
 
+        private void ConfigureTitleLabel()
+        {
             lblTitle.Text = "LEVELS";
             lblTitle.Font = new Font("Courier New", 72, FontStyle.Bold);
             lblTitle.ForeColor = MatrixGreen;
             lblTitle.BackColor = Color.Transparent;
             lblTitle.TextAlign = ContentAlignment.MiddleCenter;
-
-            UpdateLevelButtons();
-            StyleBackButton();
         }
 
         private void UpdateLevelButtons()
@@ -108,36 +118,22 @@ namespace CodeRift.Forms
 
         private void StyleLevelButton(Button button, LevelButtonInfo info, bool isUnlocked)
         {
-            button.Enabled = true;
-            button.Cursor = isUnlocked ? Cursors.Hand : Cursors.No;
-
             if (isUnlocked)
             {
+                button.Enabled = true;
+                button.Cursor = Cursors.Hand;
                 MenuButtonStyle.Apply(button, info.Text);
                 return;
             }
 
-            button.Text = $"[LOCKED] LEVEL {info.Level}";
-            button.FlatStyle = FlatStyle.Flat;
-            button.FlatAppearance.BorderSize = 2;
-            button.FlatAppearance.BorderColor = LockedGray;
-            button.FlatAppearance.MouseOverBackColor = Color.FromArgb(20, 20, 20);
-            button.FlatAppearance.MouseDownBackColor = Color.FromArgb(20, 20, 20);
-            button.ForeColor = LockedGray;
-            button.BackColor = Color.FromArgb(20, 20, 20);
-            button.Font = new Font("Courier New", 18, FontStyle.Bold | FontStyle.Italic);
+            ApplyLockedLevelStyle(button, info.Level);
         }
 
         private void StyleBackButton()
         {
             MenuButtonStyle.Apply(btnBack, "[BACK]");
             btnBack.Size = new Size(200, 50);
-
-            btnBack.Click += (_, _) =>
-            {
-                AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
-                Close();
-            };
+            btnBack.Click += BackButton_Click;
         }
 
         private void LevelButton_MouseEnter(object? sender, EventArgs e)
@@ -149,7 +145,7 @@ namespace CodeRift.Forms
 
             BeginBackgroundFade(info.BackgroundKey);
 
-            if (ProgressManager.Instance.IsLevelUnlocked(info.Level))
+            if (IsLevelUnlocked(info.Level))
             {
                 AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
             }
@@ -175,7 +171,7 @@ namespace CodeRift.Forms
                 return;
             }
 
-            if (!ProgressManager.Instance.IsLevelUnlocked(info.Level))
+            if (!IsLevelUnlocked(info.Level))
             {
                 TerminalMessageBox.Show(
                     this,
@@ -185,8 +181,29 @@ namespace CodeRift.Forms
                 return;
             }
 
+            OpenLevel(info.Level);
+        }
+
+        private static bool IsLevelUnlocked(int level)
+        {
+            return ProgressManager.Instance.IsLevelUnlocked(level);
+        }
+
+        private static void ApplyLockedLevelStyle(Button button, int level)
+        {
+            MenuButtonStyle.ApplyLocked(button, $"[LOCKED] LEVEL {level}");
+        }
+
+        private void BackButton_Click(object? sender, EventArgs e)
+        {
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
-            LaunchLevel(new BattleArenaForm(info.Level));
+            Close();
+        }
+
+        private void OpenLevel(int level)
+        {
+            AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
+            LaunchLevel(new BattleArenaForm(level));
         }
 
         private void BeginBackgroundFade(string backgroundKey)

@@ -43,23 +43,36 @@ namespace CodeRift.Forms
 
         private void SetupInitialUI()
         {
+            ConfigureFormLayout();
+            ConfigureInputEvents();
+            ConfigureDefaultLabels();
+            ApplyAccentPalette(DefaultAccent, DefaultMuted);
+            SetQuestionMode(true);
+            ShowCodeInputPlaceholder();
+        }
+
+        private void ConfigureFormLayout()
+        {
             FormBorderStyle = FormBorderStyle.None;
             WindowState = FormWindowState.Maximized;
             BackColor = DarkBackground;
             KeyPreview = true;
+        }
+
+        private void ConfigureInputEvents()
+        {
             KeyDown += BattleArenaQuestionForm_KeyDown;
             KeyPress += BattleArenaQuestionForm_KeyPress;
+            txtCodeInput.KeyPress += TxtCodeInput_KeyPress;
+            txtCodeInput.TextChanged += TxtCodeInput_TextChanged;
+        }
 
+        private void ConfigureDefaultLabels()
+        {
             lblSystemId.Text = $"SYS_ID: CR-{Random.Shared.Next(100, 999)}-X | MODE: CMD_AUTH";
             btnSubmit.Text = "CONFIRM_RUN [ENTER]";
             btnBack.Text = "[ESC] BACK";
             txtCodeInput.AcceptsTab = true;
-            txtCodeInput.KeyPress += TxtCodeInput_KeyPress;
-            txtCodeInput.TextChanged += TxtCodeInput_TextChanged;
-
-            ApplyAccentPalette(DefaultAccent, DefaultMuted);
-            SetQuestionMode(true);
-            ShowCodeInputPlaceholder();
         }
 
         /// <summary>
@@ -164,33 +177,18 @@ namespace CodeRift.Forms
         private async void btnSubmit_Click(object sender, EventArgs e)
         {
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
-            if (_isSubmitting || CurrentQuestion == null)
+            if (!CanSubmitQuestion())
             {
                 return;
             }
 
             _isSubmitting = true;
-            QuestionSkipCommandType skipCommand = QuestionSkipCommand.Parse(GetSubmittedCommandText());
-            if (skipCommand != QuestionSkipCommandType.None)
+            if (TryHandleSkipCommand(GetSubmittedCommandText()))
             {
-                SkipCommand = skipCommand;
-                WasAnswerCorrect = false;
-                DialogResult = DialogResult.OK;
-                Close();
                 return;
             }
 
-            bool isCorrect;
-            if (CurrentQuestion.Type == QuestionType.CodeInput)
-            {
-                string input = _isShowingCodeInputPlaceholder ? string.Empty : txtCodeInput.Text.Trim();
-                isCorrect = IsAnswerMatch(input, CurrentQuestion.CorrectAnswer);
-            }
-            else
-            {
-                isCorrect = IsAnswerMatch(_selectedOption, CurrentQuestion.CorrectAnswer);
-            }
-
+            bool isCorrect = EvaluateSubmittedAnswer();
             WasAnswerCorrect = isCorrect;
             if (isCorrect)
             {
@@ -200,6 +198,47 @@ namespace CodeRift.Forms
             }
 
             await ShowIncorrectAnswerFeedbackAsync();
+        }
+
+        private bool CanSubmitQuestion()
+        {
+            return !_isSubmitting && CurrentQuestion != null;
+        }
+
+        private bool TryHandleSkipCommand(string commandText)
+        {
+            QuestionSkipCommandType skipCommand = QuestionSkipCommand.Parse(commandText);
+            if (skipCommand == QuestionSkipCommandType.None)
+            {
+                return false;
+            }
+
+            SkipCommand = skipCommand;
+            WasAnswerCorrect = false;
+            DialogResult = DialogResult.OK;
+            Close();
+            return true;
+        }
+
+        private bool EvaluateSubmittedAnswer()
+        {
+            if (CurrentQuestion == null)
+            {
+                return false;
+            }
+
+            string playerAnswer = GetCurrentPlayerAnswer();
+            return IsAnswerMatch(playerAnswer, CurrentQuestion.CorrectAnswer);
+        }
+
+        private string GetCurrentPlayerAnswer()
+        {
+            if (CurrentQuestion != null && CurrentQuestion.Type == QuestionType.CodeInput)
+            {
+                return _isShowingCodeInputPlaceholder ? string.Empty : txtCodeInput.Text.Trim();
+            }
+
+            return _selectedOption ?? string.Empty;
         }
 
         private string GetSubmittedCommandText()
@@ -258,6 +297,11 @@ namespace CodeRift.Forms
         private void btnBack_Click(object sender, EventArgs e)
         {
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
+            CancelQuestion();
+        }
+
+        private void CancelQuestion()
+        {
             DialogResult = DialogResult.Cancel;
             Close();
         }
@@ -290,51 +334,77 @@ namespace CodeRift.Forms
                 return;
             }
 
+            if (TryHandleTypedBufferBackspace(e))
+            {
+                return;
+            }
+
+            if (TryHandleGlobalShortcut(e))
+            {
+                return;
+            }
+
+            HandleMultiChoiceShortcut(e);
+        }
+
+        private bool TryHandleTypedBufferBackspace(KeyEventArgs e)
+        {
             if (!pnlCodeInput.Visible && e.KeyCode == Keys.Back && _typedCommandBuffer.Length > 0)
             {
                 _typedCommandBuffer = _typedCommandBuffer.Substring(0, _typedCommandBuffer.Length - 1);
                 e.Handled = true;
-                return;
+                return true;
             }
 
+            return false;
+        }
+
+        private bool TryHandleGlobalShortcut(KeyEventArgs e)
+        {
             if (e.KeyCode == Keys.Escape)
             {
                 btnBack.PerformClick();
                 e.Handled = true;
-                return;
+                return true;
             }
 
             if (e.KeyCode == Keys.Enter)
             {
                 btnSubmit.PerformClick();
                 e.Handled = true;
-                return;
+                return true;
             }
 
+            return false;
+        }
+
+        private void HandleMultiChoiceShortcut(KeyEventArgs e)
+        {
             if (!pnlMultiChoice.Visible)
             {
                 return;
             }
 
-            switch (e.KeyCode)
+            Button? shortcutButton = GetShortcutButton(e.KeyCode);
+            if (shortcutButton == null)
             {
-                case Keys.A:
-                    btnOptionA.PerformClick();
-                    e.Handled = true;
-                    break;
-                case Keys.B:
-                    btnOptionB.PerformClick();
-                    e.Handled = true;
-                    break;
-                case Keys.C:
-                    btnOptionC.PerformClick();
-                    e.Handled = true;
-                    break;
-                case Keys.D:
-                    btnOptionD.PerformClick();
-                    e.Handled = true;
-                    break;
+                return;
             }
+
+            shortcutButton.PerformClick();
+            e.Handled = true;
+        }
+
+        private Button? GetShortcutButton(Keys keyCode)
+        {
+            return keyCode switch
+            {
+                Keys.A => btnOptionA,
+                Keys.B => btnOptionB,
+                Keys.C => btnOptionC,
+                Keys.D => btnOptionD,
+                _ => null
+            };
         }
 
         private void BattleArenaQuestionForm_KeyPress(object? sender, KeyPressEventArgs e)
@@ -344,7 +414,12 @@ namespace CodeRift.Forms
                 return;
             }
 
-            _typedCommandBuffer += e.KeyChar;
+            AppendTypedCommandChar(e.KeyChar);
+        }
+
+        private void AppendTypedCommandChar(char keyChar)
+        {
+            _typedCommandBuffer += keyChar;
             if (_typedCommandBuffer.Length > 32)
             {
                 _typedCommandBuffer = _typedCommandBuffer.Substring(_typedCommandBuffer.Length - 32);
@@ -377,7 +452,20 @@ namespace CodeRift.Forms
         {
             _accentColor = accent;
             _mutedColor = muted;
+            ApplyPaletteToLabels(accent, muted);
+            ApplyPaletteToActionButtons(accent);
+            ApplyPaletteToInputControls(accent);
+            ClearOptionHighlights();
+            InvalidatePalettePanels();
 
+            if (_isShowingCodeInputPlaceholder)
+            {
+                txtCodeInput.ForeColor = _mutedColor;
+            }
+        }
+
+        private void ApplyPaletteToLabels(Color accent, Color muted)
+        {
             lblQuestionCounter.ForeColor = accent;
             lblQuestionTag.ForeColor = accent;
             lblQuestion.ForeColor = accent;
@@ -387,29 +475,28 @@ namespace CodeRift.Forms
             lblTimer.ForeColor = accent;
             lblSystemId.ForeColor = muted;
             lblLineNumbers.ForeColor = muted;
+            lblQuestion.BackColor = DarkBackground;
+        }
 
+        private void ApplyPaletteToActionButtons(Color accent)
+        {
             btnBack.ForeColor = accent;
             btnSubmit.ForeColor = accent;
             btnSubmit.FlatAppearance.BorderColor = accent;
             btnBack.FlatAppearance.BorderColor = accent;
+        }
 
+        private void ApplyPaletteToInputControls(Color accent)
+        {
             txtCodeInput.ForeColor = accent;
             txtCodeInput.BackColor = DarkBackground;
-            lblQuestion.BackColor = DarkBackground;
+        }
 
-            ResetOptionButton(btnOptionA);
-            ResetOptionButton(btnOptionB);
-            ResetOptionButton(btnOptionC);
-            ResetOptionButton(btnOptionD);
-
+        private void InvalidatePalettePanels()
+        {
             pnlTopBar.Invalidate();
             pnlContentFrame.Invalidate();
             pnlMainLayout.Invalidate();
-
-            if (_isShowingCodeInputPlaceholder)
-            {
-                txtCodeInput.ForeColor = _mutedColor;
-            }
         }
 
         private void TxtCodeInput_KeyPress(object? sender, KeyPressEventArgs e)

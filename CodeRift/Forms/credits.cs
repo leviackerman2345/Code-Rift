@@ -7,6 +7,7 @@ using System.Drawing.Text;
 using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
+using CodeRift.Utils;
 
 namespace CodeRift.Forms
 {
@@ -160,16 +161,15 @@ namespace CodeRift.Forms
 
         private static Image? TryLoadDimmedBackground(float alpha)
         {
-            string[] paths =
+            string[] relativePaths =
             {
-                Path.Combine(Application.StartupPath, @"..\..\..\Assets\Images\backgrounds\main_menu.png"),
-                Path.Combine(Application.StartupPath, @"Assets\Images\backgrounds\main_menu.png"),
-                Path.Combine(Application.StartupPath, @"..\..\..\Assets\Images\backgrounds\Splash background.jpeg"),
-                Path.Combine(Application.StartupPath, @"Assets\Images\backgrounds\Splash background.jpeg")
+                Path.Combine("Assets", "Images", "backgrounds", "main_menu.png"),
+                Path.Combine("Assets", "Images", "backgrounds", "Splash background.jpeg")
             };
 
-            foreach (string path in paths)
+            foreach (string relativePath in relativePaths)
             {
+                string path = AssetPathHelper.ResolveAssetPath(relativePath);
                 if (!File.Exists(path))
                 {
                     continue;

@@ -29,23 +29,7 @@ namespace CodeRift.Forms
 
         private void btnPlay_Click(object? sender, EventArgs e)
         {
-            if (FormTransitionManager.IsTransitioning)
-            {
-                return;
-            }
-
-            // Story route: menu -> prologue.
-            AudioManager.Instance.StopMusic();
-            StoryForm prologue = new StoryForm(StoryScripts.CreatePrologue());
-            if (!FormTransitionManager.ShowChild(this, prologue, () =>
-            {
-                AudioManager.Instance.PlayMusic(Constants.MUSIC_MENU);
-                return true;
-            }))
-            {
-                prologue.Dispose();
-                AudioManager.Instance.PlayMusic(Constants.MUSIC_MENU);
-            }
+            OpenPrologue();
         }
 
         private void SetupButtonHovers()
@@ -208,18 +192,40 @@ namespace CodeRift.Forms
                 return;
             }
 
+            OpenLevelsMenu();
+        }
+
+        private void OpenPrologue()
+        {
+            if (FormTransitionManager.IsTransitioning)
+            {
+                return;
+            }
+
+            // Story route: menu -> prologue.
+            ShowChildAndResumeMenuMusic(new StoryForm(StoryScripts.CreatePrologue()));
+        }
+
+        private void OpenLevelsMenu()
+        {
             // Direct route: menu -> levels.
+            ShowChildAndResumeMenuMusic(new LevelsMenuForm());
+        }
+
+        private void ShowChildAndResumeMenuMusic(Form childForm)
+        {
             AudioManager.Instance.StopMusic();
-            LevelsMenuForm levelsMenu = new LevelsMenuForm();
-            if (!FormTransitionManager.ShowChild(this, levelsMenu, () =>
+            if (!FormTransitionManager.ShowChild(this, childForm, ResumeMenuMusicAndStayOpen))
             {
-                AudioManager.Instance.PlayMusic(Constants.MUSIC_MENU);
-                return true;
-            }))
-            {
-                levelsMenu.Dispose();
+                childForm.Dispose();
                 AudioManager.Instance.PlayMusic(Constants.MUSIC_MENU);
             }
+        }
+
+        private static bool ResumeMenuMusicAndStayOpen()
+        {
+            AudioManager.Instance.PlayMusic(Constants.MUSIC_MENU);
+            return true;
         }
 
         public void ApplyLanguage()

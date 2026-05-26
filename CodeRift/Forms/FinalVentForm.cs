@@ -35,8 +35,7 @@ namespace CodeRift.Forms
         public FinalVentForm()
         {
             _images = LoadFinalVentImageRefs();
-            ConfigureForm();
-            ShowCurrentImage();
+            InitializeAndShow();
         }
 
         public FinalVentForm(int level, bool playerWon)
@@ -56,13 +55,18 @@ namespace CodeRift.Forms
                 Console.WriteLine("Asset Warning: Final vent result image missing: " + resultFileName);
             }
 
-            ConfigureForm();
-            ShowCurrentImage();
+            InitializeAndShow();
         }
 
         private static string BuildResultFileName(int level, bool playerWon)
         {
             return $"level{level}_{(playerWon ? "win" : "lose")}.png";
+        }
+
+        private void InitializeAndShow()
+        {
+            ConfigureForm();
+            ShowCurrentImage();
         }
 
         private void ConfigureForm()
@@ -87,12 +91,12 @@ namespace CodeRift.Forms
         private void ConfigureContinueButton()
         {
             MenuButtonStyle.Apply(_btnContinue, "Continue", useMenuSize: true);
-            _btnContinue.Click += btnContinue_Click;
+            _btnContinue.Click += ContinueButton_Click;
         }
 
         private static List<FinalVentImageRef> LoadFinalVentImageRefs()
         {
-            string folderPath = ResolveAssetPath("Assets", "Images", "final_vent");
+            string folderPath = AssetPathHelper.ResolveAssetPath("Assets", "Images", "final_vent");
             if (!Directory.Exists(folderPath))
             {
                 Console.WriteLine("Asset Warning: Final vent folder missing: " + folderPath);
@@ -103,18 +107,6 @@ namespace CodeRift.Forms
                 .OrderBy(Path.GetFileName, StringComparer.OrdinalIgnoreCase)
                 .Select(path => new FinalVentImageRef(Path.GetFileName(path), path))
                 .ToList();
-        }
-
-        private static string ResolveAssetPath(params string[] relativeSegments)
-        {
-            string relativePath = Path.Combine(relativeSegments);
-            string outputPath = Path.Combine(Application.StartupPath, relativePath);
-            if (File.Exists(outputPath) || Directory.Exists(outputPath))
-            {
-                return outputPath;
-            }
-
-            return Path.GetFullPath(Path.Combine(Application.StartupPath, "..", "..", "..", relativePath));
         }
 
         private void ShowCurrentImage()
@@ -130,10 +122,14 @@ namespace CodeRift.Forms
             _imageBox.Image = ImageManager.Instance.GetOrLoadImage(image.Key, image.Path);
         }
 
-        private void btnContinue_Click(object? sender, EventArgs e)
+        private void ContinueButton_Click(object? sender, EventArgs e)
         {
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
+            AdvanceImageOrClose();
+        }
 
+        private void AdvanceImageOrClose()
+        {
             if (_currentImageIndex < _images.Count - 1)
             {
                 _currentImageIndex++;
@@ -158,7 +154,7 @@ namespace CodeRift.Forms
         {
             if (keyData == Keys.Enter || keyData == Keys.Space)
             {
-                btnContinue_Click(this, EventArgs.Empty);
+                ContinueButton_Click(this, EventArgs.Empty);
                 return true;
             }
 

@@ -7,8 +7,11 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using CodeRift.Core;
+using CodeRift.Entities;
 using CodeRift.Managers;
 using CodeRift.Utils;
 
@@ -51,6 +54,8 @@ namespace CodeRift.Forms
         private const string DefaultEnemyPortraitFileName = "enemy_level_1.jpeg";
         private static readonly Dictionary<string, Image> BattleAssetCache = new(StringComparer.OrdinalIgnoreCase);
         private static readonly object BattleAssetCacheLock = new();
+        private static readonly int[] NeighborOffsetX = { 1, -1, 0, 0 };
+        private static readonly int[] NeighborOffsetY = { 0, 0, 1, -1 };
 
         protected override CreateParams CreateParams
         {
@@ -67,15 +72,8 @@ namespace CodeRift.Forms
         private enum BattleState { IntroRunning, IdleLoop, PlayerAttacking, EnemyHurting, EnemyAttacking, PlayerHurting, PlayerReturning, EnemyReturning }
         private BattleState _currentState = BattleState.IntroRunning;
 
-        // Frames
-        private readonly Image?[] _playerRunFrames = new Image[AttackFrameCount];
-        private readonly Image?[] _enemyRunFrames = new Image[AttackFrameCount];
-        private readonly Image?[] _playerIdleFrames = new Image[IdleFrameCount];
-        private readonly Image?[] _enemyIdleFrames = new Image[IdleFrameCount];
-        private readonly Image?[] _playerAtkFrames = new Image[AttackFrameCount];
-        private readonly Image?[] _enemyAtkFrames = new Image[AttackFrameCount];
-        private readonly Image?[] _playerHurtFrames = new Image[AttackFrameCount];
-        private readonly Image?[] _enemyHurtFrames = new Image[AttackFrameCount];
+        private readonly PlayerActorController _playerActor = new(AttackFrameCount, IdleFrameCount);
+        private readonly EnemyActorController _enemyActor = new(AttackFrameCount, IdleFrameCount);
 
         private int _currentFrame = 0;
         private int _animFrameIdx = 0;
@@ -83,18 +81,6 @@ namespace CodeRift.Forms
         private readonly System.Windows.Forms.Timer _animTimer = new();
         private bool _isAnimTimerWired;
 
-        private Point _playerPos;
-        private Point _enemyPos;
-        private int _playerIdleX;
-        private int _enemyIdleX;
-        private int _playerIdleY;
-        private int _enemyIdleY;
-        private int _playerContactX;
-        private int _enemyContactX;
-        private Size _playerRenderSize;
-        private Size _enemyRenderSize;
-        private Image? _playerCurrentImg;
-        private Image? _enemyCurrentImg;
         private bool _checkBattleAfterAnimation;
         private bool _battleEnded;
         private int _remainingEnemyRetaliationHits;
@@ -103,7 +89,10 @@ namespace CodeRift.Forms
         private readonly PictureBox _spriteCanvas = new();
         private readonly ScreenTintOverlay _backgroundTintLayer = new();
         private Bitmap? _spriteBuffer;
+        private Graphics? _spriteBufferGraphics;
+        private Color _lastBackgroundTint = Color.Transparent;
         private readonly Random _vfxRandom = new();
+        private readonly Task _animationLoadTask;
 
         // Card mapping for turn selection and lock validation.
         private readonly Dictionary<PictureBox, int> _cardIdByPicture = new();
@@ -135,9 +124,8 @@ namespace CodeRift.Forms
             SetupSpriteCanvas();
             SetupBackgroundTintLayer();
             ConfigureActorRenderSizes();
-
-            SetupLevel();
-            LoadAnimationAssets();
+            _animationLoadTask = Task.Run(LoadAnimationAssets);
+            PrepareBattleScreen();
         }
 
         private void EnableDoubleBuffer(Control control)
@@ -159,14 +147,14 @@ namespace CodeRift.Forms
 
         private void ConfigureActorRenderSizes()
         {
-            _playerRenderSize = picPlayerPortrait.Size;
-            _enemyRenderSize = picEnemyPortrait.Size;
+            _playerActor.RenderSize = picPlayerPortrait.Size;
+            _enemyActor.RenderSize = picEnemyPortrait.Size;
 
             if (_levelConfig.EnemyRenderScale != 1.0f)
             {
-                _enemyRenderSize = new Size(
-                    (int)Math.Round(_enemyRenderSize.Width * _levelConfig.EnemyRenderScale),
-                    (int)Math.Round(_enemyRenderSize.Height * _levelConfig.EnemyRenderScale));
+                _enemyActor.RenderSize = new Size(
+                    (int)Math.Round(_enemyActor.RenderSize.Width * _levelConfig.EnemyRenderScale),
+                    (int)Math.Round(_enemyActor.RenderSize.Height * _levelConfig.EnemyRenderScale));
             }
         }
 
@@ -185,7 +173,13 @@ namespace CodeRift.Forms
 
         private void UpdateBackgroundTintBounds()
         {
-            _backgroundTintLayer.Bounds = new Rectangle(Point.Empty, ClientSize);
+            Rectangle desiredBounds = new Rectangle(Point.Empty, ClientSize);
+            if (_backgroundTintLayer.Bounds == desiredBounds)
+            {
+                return;
+            }
+
+            _backgroundTintLayer.Bounds = desiredBounds;
         }
 
         private void LoadAnimationAssets()
@@ -196,8 +190,8 @@ namespace CodeRift.Forms
                 LoadEnemyAnimationAssets();
 
                 // Normalize frame canvas sizes to prevent size/position snapping between sequences.
-                NormalizeActorFrames(_playerRunFrames, _playerIdleFrames, _playerAtkFrames, _playerHurtFrames);
-                NormalizeActorFrames(_enemyRunFrames, _enemyIdleFrames, _enemyAtkFrames, _enemyHurtFrames);
+                NormalizeActorFrames(_playerActor.RunFrames, _playerActor.IdleFrames, _playerActor.AttackFrames, _playerActor.HurtFrames);
+                NormalizeActorFrames(_enemyActor.RunFrames, _enemyActor.IdleFrames, _enemyActor.AttackFrames, _enemyActor.HurtFrames);
             }
             catch (Exception ex)
             {
@@ -209,14 +203,14 @@ namespace CodeRift.Forms
         {
             string playerPath = ResolveAssetPath("Assets", "Images", "player");
 
-            LoadFrameSequence(Path.Combine(playerPath, "run"), "player_run", _playerRunFrames, applyTransparency: true, "player run");
-            LoadFrameSequence(Path.Combine(playerPath, "attack"), "player_attack", _playerAtkFrames, applyTransparency: true, "player attack");
-            LoadFrameSequence(Path.Combine(playerPath, "hurt"), "player_hurt", _playerHurtFrames, applyTransparency: false, "player hurt");
-            LoadFrameSequence(Path.Combine(playerPath, "ide"), "player_ide", _playerIdleFrames, applyTransparency: false, "player idle");
+            LoadFrameSequence(Path.Combine(playerPath, "run"), "player_run", _playerActor.RunFrames, applyTransparency: true, "player run");
+            LoadFrameSequence(Path.Combine(playerPath, "attack"), "player_attack", _playerActor.AttackFrames, applyTransparency: true, "player attack");
+            LoadFrameSequence(Path.Combine(playerPath, "hurt"), "player_hurt", _playerActor.HurtFrames, applyTransparency: false, "player hurt");
+            LoadFrameSequence(Path.Combine(playerPath, "ide"), "player_ide", _playerActor.IdleFrames, applyTransparency: false, "player idle");
 
-            FillMissingFrames(_playerAtkFrames, _playerRunFrames);
-            FillMissingFrames(_playerHurtFrames, _playerRunFrames);
-            FillMissingFrames(_playerIdleFrames, _playerRunFrames);
+            FillMissingFrames(_playerActor.AttackFrames, _playerActor.RunFrames);
+            FillMissingFrames(_playerActor.HurtFrames, _playerActor.RunFrames);
+            FillMissingFrames(_playerActor.IdleFrames, _playerActor.RunFrames);
         }
 
         private void LoadEnemyAnimationAssets()
@@ -232,14 +226,14 @@ namespace CodeRift.Forms
 
             enemyPath = Path.Combine(enemyRoot, enemyFolder);
 
-            LoadFrameSequence(Path.Combine(enemyPath, "run"), $"{enemyFolder}_run", _enemyRunFrames, applyTransparency: false, $"{enemyFolder} run");
-            LoadFrameSequence(Path.Combine(enemyPath, "attack"), $"{enemyFolder}_attack", _enemyAtkFrames, applyTransparency: true, $"{enemyFolder} attack");
-            LoadFrameSequence(Path.Combine(enemyPath, "hurt"), $"{enemyFolder}_hurt", _enemyHurtFrames, applyTransparency: false, $"{enemyFolder} hurt");
-            LoadFrameSequence(Path.Combine(enemyPath, "ide"), $"{enemyFolder}_ide", _enemyIdleFrames, applyTransparency: false, $"{enemyFolder} idle");
+            LoadFrameSequence(Path.Combine(enemyPath, "run"), $"{enemyFolder}_run", _enemyActor.RunFrames, applyTransparency: false, $"{enemyFolder} run");
+            LoadFrameSequence(Path.Combine(enemyPath, "attack"), $"{enemyFolder}_attack", _enemyActor.AttackFrames, applyTransparency: true, $"{enemyFolder} attack");
+            LoadFrameSequence(Path.Combine(enemyPath, "hurt"), $"{enemyFolder}_hurt", _enemyActor.HurtFrames, applyTransparency: false, $"{enemyFolder} hurt");
+            LoadFrameSequence(Path.Combine(enemyPath, "ide"), $"{enemyFolder}_ide", _enemyActor.IdleFrames, applyTransparency: false, $"{enemyFolder} idle");
 
-            FillMissingFrames(_enemyHurtFrames, _enemyRunFrames);
-            FillMissingFrames(_enemyAtkFrames, _enemyRunFrames);
-            FillMissingFrames(_enemyIdleFrames, _enemyRunFrames);
+            FillMissingFrames(_enemyActor.HurtFrames, _enemyActor.RunFrames);
+            FillMissingFrames(_enemyActor.AttackFrames, _enemyActor.RunFrames);
+            FillMissingFrames(_enemyActor.IdleFrames, _enemyActor.RunFrames);
         }
 
         private static void LoadFrameSequence(string folderPath, string preferredPrefix, Image?[] targetFrames, bool applyTransparency, string sequenceName)
@@ -287,14 +281,7 @@ namespace CodeRift.Forms
 
         private static string ResolveAssetPath(params string[] relativeSegments)
         {
-            string relativePath = Path.Combine(relativeSegments);
-            string outputPath = Path.Combine(Application.StartupPath, relativePath);
-            if (File.Exists(outputPath) || Directory.Exists(outputPath))
-            {
-                return outputPath;
-            }
-
-            return Path.GetFullPath(Path.Combine(Application.StartupPath, "..", "..", "..", relativePath));
+            return AssetPathHelper.ResolveAssetPath(relativeSegments);
         }
 
         private static void LogAssetWarning(string message)
@@ -439,71 +426,120 @@ namespace CodeRift.Forms
 
             int width = output.Width;
             int height = output.Height;
-            bool[,] visited = new bool[width, height];
-            Queue<Point> queue = new Queue<Point>();
+            bool[] visited = new bool[width * height];
+            Queue<int> queue = new Queue<int>();
 
-            // Seed flood-fill from image borders only. This removes background black
-            // while preserving dark details inside the character.
-            void TryEnqueue(int x, int y)
+            Rectangle bounds = new Rectangle(0, 0, width, height);
+            BitmapData? bitmapData = null;
+
+            try
             {
-                if (x < 0 || y < 0 || x >= width || y >= height || visited[x, y])
+                bitmapData = output.LockBits(bounds, ImageLockMode.ReadWrite, PixelFormat.Format32bppPArgb);
+                int stride = bitmapData.Stride;
+                int totalBytes = stride * height;
+                byte[] pixels = new byte[totalBytes];
+                Marshal.Copy(bitmapData.Scan0, pixels, 0, totalBytes);
+
+                int ToVisitedIndex(int x, int y) => (y * width) + x;
+                int ToPixelOffset(int x, int y) => (y * stride) + (x * 4);
+
+                bool IsNearBlackAtPixelOffset(int offset)
                 {
-                    return;
+                    byte b = pixels[offset];
+                    byte gCh = pixels[offset + 1];
+                    byte r = pixels[offset + 2];
+                    byte a = pixels[offset + 3];
+                    return a > 0 && r <= threshold && gCh <= threshold && b <= threshold;
                 }
 
-                visited[x, y] = true;
-                Color c = output.GetPixel(x, y);
-                if (!IsNearBlack(c, threshold))
+                void SetTransparentAtPixelOffset(int offset)
                 {
-                    return;
+                    pixels[offset] = 0;
+                    pixels[offset + 1] = 0;
+                    pixels[offset + 2] = 0;
+                    pixels[offset + 3] = 0;
                 }
 
-                queue.Enqueue(new Point(x, y));
-            }
-
-            for (int x = 0; x < width; x++)
-            {
-                TryEnqueue(x, 0);
-                TryEnqueue(x, height - 1);
-            }
-            for (int y = 0; y < height; y++)
-            {
-                TryEnqueue(0, y);
-                TryEnqueue(width - 1, y);
-            }
-
-            int[] dx = new[] { 1, -1, 0, 0 };
-            int[] dy = new[] { 0, 0, 1, -1 };
-
-            while (queue.Count > 0)
-            {
-                Point p = queue.Dequeue();
-                output.SetPixel(p.X, p.Y, Color.Transparent);
-
-                for (int i = 0; i < 4; i++)
+                // Seed flood-fill from image borders only. This removes background black
+                // while preserving dark details inside the character.
+                void TryEnqueue(int x, int y)
                 {
-                    int nx = p.X + dx[i];
-                    int ny = p.Y + dy[i];
-                    if (nx < 0 || ny < 0 || nx >= width || ny >= height || visited[nx, ny])
+                    if (x < 0 || y < 0 || x >= width || y >= height)
                     {
-                        continue;
+                        return;
                     }
 
-                    visited[nx, ny] = true;
-                    Color nc = output.GetPixel(nx, ny);
-                    if (IsNearBlack(nc, threshold))
+                    int visitedIndex = ToVisitedIndex(x, y);
+                    if (visited[visitedIndex])
                     {
-                        queue.Enqueue(new Point(nx, ny));
+                        return;
                     }
+
+                    visited[visitedIndex] = true;
+                    int pixelOffset = ToPixelOffset(x, y);
+                    if (!IsNearBlackAtPixelOffset(pixelOffset))
+                    {
+                        return;
+                    }
+
+                    queue.Enqueue(visitedIndex);
+                }
+
+                for (int x = 0; x < width; x++)
+                {
+                    TryEnqueue(x, 0);
+                    TryEnqueue(x, height - 1);
+                }
+
+                for (int y = 0; y < height; y++)
+                {
+                    TryEnqueue(0, y);
+                    TryEnqueue(width - 1, y);
+                }
+
+                while (queue.Count > 0)
+                {
+                    int visitedIndex = queue.Dequeue();
+                    int y = visitedIndex / width;
+                    int x = visitedIndex - (y * width);
+                    int currentPixelOffset = ToPixelOffset(x, y);
+                    SetTransparentAtPixelOffset(currentPixelOffset);
+
+                    for (int i = 0; i < 4; i++)
+                    {
+                        int nextX = x + NeighborOffsetX[i];
+                        int nextY = y + NeighborOffsetY[i];
+                        if (nextX < 0 || nextY < 0 || nextX >= width || nextY >= height)
+                        {
+                            continue;
+                        }
+
+                        int nextVisitedIndex = ToVisitedIndex(nextX, nextY);
+                        if (visited[nextVisitedIndex])
+                        {
+                            continue;
+                        }
+
+                        visited[nextVisitedIndex] = true;
+                        int nextPixelOffset = ToPixelOffset(nextX, nextY);
+                        if (IsNearBlackAtPixelOffset(nextPixelOffset))
+                        {
+                            queue.Enqueue(nextVisitedIndex);
+                        }
+                    }
+                }
+
+                Marshal.Copy(pixels, 0, bitmapData.Scan0, totalBytes);
+            }
+            finally
+            {
+                if (bitmapData != null)
+                {
+                    output.UnlockBits(bitmapData);
                 }
             }
 
             return output;
-        }
-
-        private static bool IsNearBlack(Color c, byte threshold)
-        {
-            return c.A > 0 && c.R <= threshold && c.G <= threshold && c.B <= threshold;
         }
 
         private void StartAnimations()
@@ -513,30 +549,57 @@ namespace CodeRift.Forms
                 return;
             }
 
-            // Align both actors by feet on the same baseline, while preserving animation states.
-            int desiredGroundBaseline = Math.Max(picPlayerPortrait.Bottom, picEnemyPortrait.Bottom) + GroundDropOffset;
-            int maxVisibleGroundBaseline = pnlBattleZone.Height - GroundVisiblePadding;
-            int groundBaseline = Math.Min(desiredGroundBaseline, maxVisibleGroundBaseline);
+            PrepareActorIntroPositions();
+            ConfigureAnimationTimer();
+            RenderActorsToPictureBoxes();
+        }
 
-            _playerIdleY = groundBaseline - _playerRenderSize.Height;
-            _enemyIdleY = groundBaseline - _enemyRenderSize.Height;
+        private void PrepareActorIntroPositions()
+        {
+            // Align both actors by feet on the same baseline, while preserving animation states.
+            int groundBaseline = CalculateGroundBaseline();
+
+            _playerActor.IdleY = groundBaseline - _playerActor.RenderSize.Height;
+            _enemyActor.IdleY = groundBaseline - _enemyActor.RenderSize.Height;
 
             UpdateActorLayout();
-            int playerTargetX = _playerIdleX;
-            int enemyTargetX = _enemyIdleX;
-            int runDistance = 600;
+            SetActorIntroRunPositions();
+            SetInitialRunFrames();
+        }
 
-            _playerPos = new Point(playerTargetX - runDistance, _playerIdleY);
-            _enemyPos = new Point(enemyTargetX + runDistance, _enemyIdleY);
+        private int CalculateGroundBaseline()
+        {
+            int desiredGroundBaseline = Math.Max(picPlayerPortrait.Bottom, picEnemyPortrait.Bottom) + GroundDropOffset;
+            int maxVisibleGroundBaseline = pnlBattleZone.Height - GroundVisiblePadding;
+            return Math.Min(desiredGroundBaseline, maxVisibleGroundBaseline);
+        }
 
-            if (_playerRunFrames[0] != null) _playerCurrentImg = _playerRunFrames[0];
-            if (_enemyRunFrames[0] != null) _enemyCurrentImg = _enemyRunFrames[0];
+        private void SetActorIntroRunPositions()
+        {
+            const int runDistance = 600;
+            _playerActor.SetPosition(_playerActor.IdleX - runDistance, _playerActor.IdleY);
+            _enemyActor.SetPosition(_enemyActor.IdleX + runDistance, _enemyActor.IdleY);
+        }
 
+        private void SetInitialRunFrames()
+        {
+            if (_playerActor.RunFrames[0] != null)
+            {
+                _playerActor.SetCurrentImage(_playerActor.RunFrames[0]);
+            }
+
+            if (_enemyActor.RunFrames[0] != null)
+            {
+                _enemyActor.SetCurrentImage(_enemyActor.RunFrames[0]);
+            }
+        }
+
+        private void ConfigureAnimationTimer()
+        {
             _animTimer.Interval = AnimationTimerIntervalMs;
             _animTimer.Tick += AnimTimer_Tick;
             _isAnimTimerWired = true;
             _animTimer.Start();
-            RenderActorsToPictureBoxes();
         }
 
         private void AnimTimer_Tick(object? sender, EventArgs e)
@@ -553,7 +616,7 @@ namespace CodeRift.Forms
             switch (_currentState)
             {
                 case BattleState.IntroRunning:
-                    HandleIntroAnimation(_playerIdleX, _enemyIdleX);
+                    HandleIntroAnimation(_playerActor.IdleX, _enemyActor.IdleX);
                     break;
 
                 case BattleState.IdleLoop:
@@ -569,7 +632,7 @@ namespace CodeRift.Forms
                     break;
 
                 case BattleState.EnemyAttacking:
-                    HandleEnemyAttack(_enemyContactX);
+                    HandleEnemyAttack(_enemyActor.ContactX);
                     break;
 
                 case BattleState.PlayerHurting:
@@ -596,24 +659,24 @@ namespace CodeRift.Forms
         private void HandleIntroAnimation(int pTarget, int eTarget)
         {
             int frameIdx = (_currentFrame / 2) % AttackFrameCount;
-            _playerCurrentImg = _playerRunFrames[frameIdx];
-            _enemyCurrentImg = _enemyRunFrames[frameIdx];
+            _playerActor.SetRunFrame(frameIdx);
+            _enemyActor.SetRunFrame(frameIdx);
 
             bool pArrived = false;
             bool eArrived = false;
 
-            if (_playerPos.X < pTarget)
+            if (_playerActor.Position.X < pTarget)
             {
-                _playerPos.X = Math.Min(pTarget, _playerPos.X + 25);
+                _playerActor.MoveXTowards(pTarget, 25);
             }
             else
             {
                 pArrived = true;
             }
 
-            if (_enemyPos.X > eTarget)
+            if (_enemyActor.Position.X > eTarget)
             {
-                _enemyPos.X = Math.Max(eTarget, _enemyPos.X - 25);
+                _enemyActor.MoveXTowards(eTarget, 25);
             }
             else
             {
@@ -632,35 +695,35 @@ namespace CodeRift.Forms
             int centerX = pnlBattleZone.Width / 2;
             if (_levelConfig.CenterActorsByWidth)
             {
-                int totalWidth = _playerRenderSize.Width + _levelConfig.ActorIdleGap + _enemyRenderSize.Width;
-                _playerIdleX = centerX - totalWidth / 2;
-                _enemyIdleX = _playerIdleX + _playerRenderSize.Width + _levelConfig.ActorIdleGap;
+                int totalWidth = _playerActor.RenderSize.Width + _levelConfig.ActorIdleGap + _enemyActor.RenderSize.Width;
+                _playerActor.IdleX = centerX - totalWidth / 2;
+                _enemyActor.IdleX = _playerActor.IdleX + _playerActor.RenderSize.Width + _levelConfig.ActorIdleGap;
             }
             else
             {
-                _playerIdleX = centerX - 460;
-                _enemyIdleX = centerX + 10;
+                _playerActor.IdleX = centerX - 460;
+                _enemyActor.IdleX = centerX + 10;
             }
 
-            _playerContactX = _enemyIdleX - _playerRenderSize.Width + _levelConfig.PlayerAttackContactOverlap;
-            _enemyContactX = _playerIdleX + _playerRenderSize.Width - _levelConfig.EnemyAttackContactOverlap;
+            _playerActor.ContactX = _enemyActor.IdleX - _playerActor.RenderSize.Width + _levelConfig.PlayerAttackContactOverlap;
+            _enemyActor.ContactX = _playerActor.IdleX + _playerActor.RenderSize.Width - _levelConfig.EnemyAttackContactOverlap;
         }
 
         private void HandleIdleAnimation()
         {
             int ticksPerIdleFrame = 6;
             int frameIdx = (_currentFrame / ticksPerIdleFrame) % IdleFrameCount;
-            _playerCurrentImg = _playerIdleFrames[frameIdx];
-            _enemyCurrentImg = _enemyIdleFrames[frameIdx];
+            _playerActor.SetIdleFrame(frameIdx);
+            _enemyActor.SetIdleFrame(frameIdx);
         }
 
         private void HandlePlayerAttack()
         {
             int frameIdx = _animFrameIdx;
-            _playerCurrentImg = _playerAtkFrames[frameIdx];
-            if (_playerPos.X < _playerContactX)
+            _playerActor.SetAttackFrame(frameIdx);
+            if (_playerActor.Position.X < _playerActor.ContactX)
             {
-                _playerPos.X = Math.Min(_playerContactX, _playerPos.X + 34);
+                _playerActor.MoveXTowards(_playerActor.ContactX, 34);
             }
 
             if (!ShouldAdvanceStateFrame(2))
@@ -669,7 +732,7 @@ namespace CodeRift.Forms
             }
 
             _animFrameIdx++;
-            int impactFrameStart = Math.Max(0, _playerAtkFrames.Length - ImpactFramesRemaining);
+            int impactFrameStart = Math.Max(0, _playerActor.AttackFrames.Length - ImpactFramesRemaining);
             if (_animFrameIdx >= impactFrameStart)
             {
                 _animFrameIdx = 0;
@@ -682,7 +745,7 @@ namespace CodeRift.Forms
         private void HandleEnemyHurt()
         {
             int frameIdx = _animFrameIdx;
-            _enemyCurrentImg = _enemyHurtFrames[frameIdx];
+            _enemyActor.SetHurtFrame(frameIdx);
 
             if (!ShouldAdvanceStateFrame(2))
             {
@@ -707,11 +770,11 @@ namespace CodeRift.Forms
         private void HandlePlayerReturn()
         {
             int frameIdx = (_currentFrame / 4) % IdleFrameCount;
-            _playerCurrentImg = _playerIdleFrames[frameIdx];
+            _playerActor.SetIdleFrame(frameIdx);
 
-            if (_playerPos.X > _playerIdleX)
+            if (_playerActor.Position.X > _playerActor.IdleX)
             {
-                _playerPos.X = Math.Max(_playerIdleX, _playerPos.X - 30);
+                _playerActor.MoveXTowards(_playerActor.IdleX, 30);
                 return;
             }
 
@@ -726,10 +789,10 @@ namespace CodeRift.Forms
         private void HandleEnemyAttack(int enemyContactX)
         {
             int frameIdx = _animFrameIdx;
-            _enemyCurrentImg = _enemyAtkFrames[frameIdx];
-            if (_enemyPos.X > enemyContactX)
+            _enemyActor.SetAttackFrame(frameIdx);
+            if (_enemyActor.Position.X > enemyContactX)
             {
-                _enemyPos.X = Math.Max(enemyContactX, _enemyPos.X - 38);
+                _enemyActor.MoveXTowards(enemyContactX, 38);
             }
 
             if (!ShouldAdvanceStateFrame(2))
@@ -738,7 +801,7 @@ namespace CodeRift.Forms
             }
 
             _animFrameIdx++;
-            int impactFrameStart = Math.Max(0, _enemyAtkFrames.Length - ImpactFramesRemaining);
+            int impactFrameStart = Math.Max(0, _enemyActor.AttackFrames.Length - ImpactFramesRemaining);
             if (_animFrameIdx >= impactFrameStart)
             {
                 _animFrameIdx = 0;
@@ -749,7 +812,7 @@ namespace CodeRift.Forms
         private void HandlePlayerHurt()
         {
             int frameIdx = _animFrameIdx;
-            _playerCurrentImg = _playerHurtFrames[frameIdx];
+            _playerActor.SetHurtFrame(frameIdx);
 
             if (!ShouldAdvanceStateFrame(2))
             {
@@ -776,11 +839,11 @@ namespace CodeRift.Forms
         private void HandleEnemyReturn()
         {
             int frameIdx = (_currentFrame / 4) % IdleFrameCount;
-            _enemyCurrentImg = _enemyIdleFrames[frameIdx];
+            _enemyActor.SetIdleFrame(frameIdx);
 
-            if (_enemyPos.X < _enemyIdleX)
+            if (_enemyActor.Position.X < _enemyActor.IdleX)
             {
-                _enemyPos.X = Math.Min(_enemyIdleX, _enemyPos.X + 30);
+                _enemyActor.MoveXTowards(_enemyActor.IdleX, 30);
                 return;
             }
 
@@ -799,51 +862,94 @@ namespace CodeRift.Forms
             }
         }
 
-        private void SetupLevel()
+        private void PrepareBattleScreen()
         {
             lblLevelTitle.Text = $"// LEVEL {Level} : {_levelConfig.EnemyName} //";
             lblEnemyName.Text = _levelConfig.EnemyName;
         }
 
-        private void BattleArenaForm_Load(object sender, EventArgs e)
+        private async void BattleArenaForm_Load(object sender, EventArgs e)
         {
             try
             {
-                string bgPath = ResolveAssetPath("Assets", "Images", "backgrounds", "level_background", $"level_{Level}.png");
-                if (File.Exists(bgPath))
+                await _animationLoadTask;
+                if (ShouldAbortBattleLoad())
                 {
-                    BackgroundImage = LoadImageCopy(bgPath);
-                    BackgroundImageLayout = ImageLayout.Stretch;
-                }
-                else
-                {
-                    LogAssetWarning($"Background image missing for level {Level}: {bgPath}");
+                    return;
                 }
 
-                string playerPath = ResolveAssetPath("Assets", "Images", "portraits", "player.jpeg");
-                string enemyPath = ResolveAssetPath("Assets", "Images", "portraits", _levelConfig.Enemy.PortraitFileName);
-                string fallbackEnemyPath = ResolveAssetPath("Assets", "Images", "portraits", DefaultEnemyPortraitFileName);
-                LoadPictureBoxImage(picPlayerThumb, playerPath, "player portrait");
-                LoadPictureBoxImage(picEnemyThumb, enemyPath, $"{_levelConfig.Enemy.Name} portrait", fallbackEnemyPath);
-
-                LoadCards("player", "player_card", picPlayerCard1, picPlayerCard2, picPlayerCard3, picPlayerCard4, picPlayerCard5);
-                LoadCards("enemies", "enemy_card", picEnemyCard1, picEnemyCard2, picEnemyCard3, picEnemyCard4, picEnemyCard5);
-                SyncAllHudFromEngine();
-                RefreshPlayerCardLockVisuals();
-                StartAnimations();
-
-                AudioManager.Instance.PlayMusic(Constants.MUSIC_LEVELS);
-#if DEBUG
-                foreach (var line in QuizBattleEngine.RunSimpleTestSimulation())
-                {
-                    Debug.WriteLine(line);
-                }
-#endif
+                LoadBattleAssets();
+                InitializeBattleRound();
+                StartBattleAudioAndDebugTools();
             }
             catch (Exception ex)
             {
-                TerminalMessageBox.Show(this, "Load Error: " + ex.Message, "Load Error", TerminalMessageType.Error);
+                ShowBattleLoadError(ex);
             }
+        }
+
+        private bool ShouldAbortBattleLoad()
+        {
+            return _battleEnded || IsDisposed || Disposing;
+        }
+
+        private void LoadBattleAssets()
+        {
+            LoadBattleBackground();
+            LoadPortraitAssets();
+            LoadCardAssets();
+        }
+
+        private void LoadBattleBackground()
+        {
+            string backgroundPath = ResolveAssetPath("Assets", "Images", "backgrounds", "level_background", $"level_{Level}.png");
+            if (File.Exists(backgroundPath))
+            {
+                BackgroundImage = LoadImageCopy(backgroundPath);
+                BackgroundImageLayout = ImageLayout.Stretch;
+                return;
+            }
+
+            LogAssetWarning($"Background image missing for level {Level}: {backgroundPath}");
+        }
+
+        private void LoadPortraitAssets()
+        {
+            string playerPortraitPath = ResolveAssetPath("Assets", "Images", "portraits", "player.jpeg");
+            string enemyPortraitPath = ResolveAssetPath("Assets", "Images", "portraits", _levelConfig.Enemy.PortraitFileName);
+            string fallbackEnemyPortraitPath = ResolveAssetPath("Assets", "Images", "portraits", DefaultEnemyPortraitFileName);
+
+            LoadPictureBoxImage(picPlayerThumb, playerPortraitPath, "player portrait");
+            LoadPictureBoxImage(picEnemyThumb, enemyPortraitPath, $"{_levelConfig.Enemy.Name} portrait", fallbackEnemyPortraitPath);
+        }
+
+        private void LoadCardAssets()
+        {
+            LoadCards("player", "player_card", picPlayerCard1, picPlayerCard2, picPlayerCard3, picPlayerCard4, picPlayerCard5);
+            LoadCards("enemies", "enemy_card", picEnemyCard1, picEnemyCard2, picEnemyCard3, picEnemyCard4, picEnemyCard5);
+        }
+
+        private void InitializeBattleRound()
+        {
+            SyncAllHudFromEngine();
+            RefreshPlayerCardLockVisuals();
+            StartAnimations();
+        }
+
+        private static void StartBattleAudioAndDebugTools()
+        {
+            AudioManager.Instance.PlayMusic(Constants.MUSIC_LEVELS);
+#if DEBUG
+            foreach (var line in QuizBattleEngine.RunSimpleTestSimulation())
+            {
+                Debug.WriteLine(line);
+            }
+#endif
+        }
+
+        private void ShowBattleLoadError(Exception ex)
+        {
+            TerminalMessageBox.Show(this, "Load Error: " + ex.Message, "Load Error", TerminalMessageType.Error);
         }
 
         private static void LoadPictureBoxImage(PictureBox pictureBox, string path, string description, string? fallbackPath = null)
@@ -876,24 +982,44 @@ namespace CodeRift.Forms
 
                 if (folder == "player")
                 {
-                    int cardId = i + 1;
-                    _cardIdByPicture[boxes[i]] = cardId;
-                    _pictureByCardId[cardId] = boxes[i];
-                    boxes[i].Cursor = Cursors.Hand;
-
-                    if (_wiredPlayerCardBoxes.Add(boxes[i]))
-                    {
-                        boxes[i].MouseEnter += (s, e) => {
-                            if (s is PictureBox pb && _cardIdByPicture.TryGetValue(pb, out int id)) {
-                                if (!_usedPlayerCards.Contains(id) && _battleEngine.CanSelectCard(id)) {
-                                    AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
-                                }
-                            }
-                        };
-                        boxes[i].Click += PlayerCard_Click;
-                    }
+                    RegisterPlayerCard(boxes[i], i + 1);
                 }
             }
+        }
+
+        private void RegisterPlayerCard(PictureBox cardPictureBox, int cardId)
+        {
+            _cardIdByPicture[cardPictureBox] = cardId;
+            _pictureByCardId[cardId] = cardPictureBox;
+            cardPictureBox.Cursor = Cursors.Hand;
+
+            if (!_wiredPlayerCardBoxes.Add(cardPictureBox))
+            {
+                return;
+            }
+
+            cardPictureBox.MouseEnter += PlayerCard_MouseEnter;
+            cardPictureBox.Click += PlayerCard_Click;
+        }
+
+        private void PlayerCard_MouseEnter(object? sender, EventArgs e)
+        {
+            if (sender is not PictureBox cardPictureBox)
+            {
+                return;
+            }
+
+            if (!_cardIdByPicture.TryGetValue(cardPictureBox, out int cardId))
+            {
+                return;
+            }
+
+            if (_usedPlayerCards.Contains(cardId) || !_battleEngine.CanSelectCard(cardId))
+            {
+                return;
+            }
+
+            AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
         }
 
         /// <summary>
@@ -905,55 +1031,98 @@ namespace CodeRift.Forms
         /// </summary>
         private void PlayerCard_Click(object? sender, EventArgs e)
         {
-            if (_battleEnded || sender is not PictureBox card || _currentState != BattleState.IdleLoop)
+            if (!TryGetPlayableCardId(sender, out int selectedCardId))
             {
                 return;
             }
 
-            if (!_cardIdByPicture.TryGetValue(card, out int selectedCardId))
+            using BattleArenaQuestionForm? questionForm = OpenQuestionForm();
+            if (questionForm == null)
             {
                 return;
+            }
+
+            PlayerTurnResult turnResult = RunPlayerTurn(selectedCardId, questionForm);
+            RefreshPlayerCardLockVisuals();
+            ApplyPlayerTurnResult(turnResult);
+        }
+
+        private bool TryGetPlayableCardId(object? sender, out int selectedCardId)
+        {
+            selectedCardId = 0;
+
+            if (_battleEnded || _currentState != BattleState.IdleLoop || sender is not PictureBox card)
+            {
+                return false;
+            }
+
+            if (!_cardIdByPicture.TryGetValue(card, out selectedCardId))
+            {
+                return false;
             }
 
             if (_usedPlayerCards.Contains(selectedCardId))
             {
-                return;
+                return false;
             }
 
-            if (!_battleEngine.CanSelectCard(selectedCardId))
+            if (_battleEngine.CanSelectCard(selectedCardId))
             {
-                TerminalMessageBox.Show(
-                    this,
-                    $"Card {_battleEngine.LockedCardId} is locked. Retry that card first.",
-                    "Locked Card",
-                    TerminalMessageType.Warning);
-                return;
+                return true;
             }
 
-            var challenge = QuestionManager.Instance.GetRandomQuestion(Level);
-            using BattleArenaQuestionForm qForm = new BattleArenaQuestionForm();
-            qForm.Populate(challenge, 1, 5);
-            var questionResult = qForm.ShowDialog();
+            ShowLockedCardWarning();
+            return false;
+        }
+
+        private void ShowLockedCardWarning()
+        {
+            TerminalMessageBox.Show(
+                this,
+                $"Card {_battleEngine.LockedCardId} is locked. Retry that card first.",
+                "Locked Card",
+                TerminalMessageType.Warning);
+        }
+
+        private BattleArenaQuestionForm? OpenQuestionForm()
+        {
+            Question challenge = QuestionManager.Instance.GetRandomQuestion(Level);
+            BattleArenaQuestionForm questionForm = new BattleArenaQuestionForm();
+            questionForm.Populate(challenge, 1, 5);
+
+            DialogResult questionResult = questionForm.ShowDialog();
             if (questionResult == DialogResult.Cancel)
             {
+                questionForm.Dispose();
+                return null;
+            }
+
+            return questionForm;
+        }
+
+        private void ApplyPlayerTurnResult(PlayerTurnResult turnResult)
+        {
+            if (turnResult.PlayerAttacked)
+            {
+                StartPlayerAttack(turnResult.SelectedCardId);
                 return;
             }
 
-            PlayerTurnResult turnResult = RunPlayerTurn(selectedCardId, qForm);
-            RefreshPlayerCardLockVisuals();
+            StartEnemyAttack(turnResult.EnemyAttacks.Count);
+        }
 
-            if (turnResult.PlayerAttacked)
-            {
-                MarkCardAsUsed(turnResult.SelectedCardId);
-                _playerPos.X = _playerIdleX;
-                _animFrameIdx = 0;
-                _checkBattleAfterAnimation = true;
-                SetState(BattleState.PlayerAttacking);
-            }
-            else
-            {
-                StartEnemyRetaliation(turnResult.EnemyAttacks.Count);
-            }
+        private void StartPlayerAttack(int selectedCardId)
+        {
+            MarkCardAsUsed(selectedCardId);
+            _playerActor.SetPositionX(_playerActor.IdleX);
+            _animFrameIdx = 0;
+            _checkBattleAfterAnimation = true;
+            SetState(BattleState.PlayerAttacking);
+        }
+
+        private void StartEnemyAttack(int attackCount)
+        {
+            StartEnemyRetaliation(attackCount);
         }
 
         private PlayerTurnResult RunPlayerTurn(int selectedCardId, BattleArenaQuestionForm qForm)
@@ -975,18 +1144,23 @@ namespace CodeRift.Forms
         {
             if (attackCount <= 0)
             {
-                UpdatePlayerHudFromEngine();
-                ShowIncorrectAnswerMessage();
-                EvaluateBattleResult();
+                HandleImmediateEnemyRetaliation();
                 return;
             }
 
             _remainingEnemyRetaliationHits = attackCount;
             _pendingIncorrectAnswerPopup = true;
             _animFrameIdx = 0;
-            _enemyCurrentImg = _enemyAtkFrames[0] ?? _enemyCurrentImg;
+            _enemyActor.SetCurrentImage(_enemyActor.AttackFrames[0] ?? _enemyActor.CurrentImage);
             _enemyNeedsReturnAfterPlayerAttack = true;
             SetState(BattleState.EnemyAttacking);
+        }
+
+        private void HandleImmediateEnemyRetaliation()
+        {
+            UpdatePlayerHudFromEngine();
+            ShowIncorrectAnswerMessage();
+            EvaluateBattleResult();
         }
 
         private bool ShouldAdvanceStateFrame(int ticksPerFrame)
@@ -1019,36 +1193,32 @@ namespace CodeRift.Forms
                 return;
             }
 
-            EnsureSpriteBufferSize(_spriteCanvas.Size);
-            if (_spriteBuffer == null)
+            PrepareSpriteBuffer(_spriteCanvas.Size);
+            if (_spriteBuffer == null || _spriteBufferGraphics == null)
             {
                 return;
             }
 
             Point shake = GetShakeOffset();
-            using (Graphics g = Graphics.FromImage(_spriteBuffer))
-            {
-                g.Clear(Color.Transparent);
-                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
-                g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-                g.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceOver;
+            Graphics g = _spriteBufferGraphics;
+            g.Clear(Color.Transparent);
 
-                if (_playerCurrentImg != null)
-                {
-                    Point playerDraw = new Point(_playerPos.X + shake.X, _playerPos.Y + shake.Y);
-                    g.DrawImage(_playerCurrentImg, new Rectangle(playerDraw, _playerRenderSize));
-                }
+            RenderBattleActor(g, _playerActor, shake);
+            RenderBattleActor(g, _enemyActor, shake);
 
-                if (_enemyCurrentImg != null)
-                {
-                    Point enemyDraw = new Point(_enemyPos.X + shake.X, _enemyPos.Y + shake.Y);
-                    g.DrawImage(_enemyCurrentImg, new Rectangle(enemyDraw, _enemyRenderSize));
-                }
-            }
-
-            _spriteCanvas.Image = _spriteBuffer;
             _spriteCanvas.Invalidate();
             ApplyBackgroundTintOnly();
+        }
+
+        private static void RenderBattleActor(Graphics graphics, BattleActorController actor, Point shakeOffset)
+        {
+            if (actor.CurrentImage == null)
+            {
+                return;
+            }
+
+            Point drawPoint = new Point(actor.Position.X + shakeOffset.X, actor.Position.Y + shakeOffset.Y);
+            graphics.DrawImage(actor.CurrentImage, new Rectangle(drawPoint, actor.RenderSize));
         }
 
         private Color GetBackgroundShadeColor()
@@ -1091,33 +1261,35 @@ namespace CodeRift.Forms
         {
             UpdateBackgroundTintBounds();
             Color tint = GetBackgroundShadeColor();
+            if (tint == _lastBackgroundTint)
+            {
+                return;
+            }
+
             if (tint.A <= 0)
             {
                 _backgroundTintLayer.Visible = false;
                 _backgroundTintLayer.TintColor = Color.Transparent;
+                _lastBackgroundTint = Color.Transparent;
                 return;
             }
 
+            bool wasVisible = _backgroundTintLayer.Visible;
             _backgroundTintLayer.TintColor = tint;
             _backgroundTintLayer.Visible = true;
-            _backgroundTintLayer.SendToBack();
+            if (!wasVisible)
+            {
+                _backgroundTintLayer.SendToBack();
+            }
+
+            _lastBackgroundTint = tint;
         }
 
-        private void EnsureSpriteBufferSize(Size size)
+        private void PrepareSpriteBuffer(Size size)
         {
             if (size.Width <= 0 || size.Height <= 0)
             {
-                if (_spriteBuffer != null)
-                {
-                    if (ReferenceEquals(_spriteCanvas.Image, _spriteBuffer))
-                    {
-                        _spriteCanvas.Image = null;
-                    }
-
-                    _spriteBuffer.Dispose();
-                    _spriteBuffer = null;
-                }
-
+                DisposeSpriteBufferResources();
                 return;
             }
 
@@ -1135,16 +1307,29 @@ namespace CodeRift.Forms
                     // Recreate disposed buffer below.
                 }
 
-                if (ReferenceEquals(_spriteCanvas.Image, _spriteBuffer))
-                {
-                    _spriteCanvas.Image = null;
-                }
-
-                _spriteBuffer.Dispose();
-                _spriteBuffer = null;
+                DisposeSpriteBufferResources();
             }
 
             _spriteBuffer = new Bitmap(size.Width, size.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            _spriteBufferGraphics = Graphics.FromImage(_spriteBuffer);
+            _spriteBufferGraphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+            _spriteBufferGraphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+            _spriteBufferGraphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceOver;
+            _spriteCanvas.Image = _spriteBuffer;
+        }
+
+        private void DisposeSpriteBufferResources()
+        {
+            if (ReferenceEquals(_spriteCanvas.Image, _spriteBuffer))
+            {
+                _spriteCanvas.Image = null;
+            }
+
+            _spriteBufferGraphics?.Dispose();
+            _spriteBufferGraphics = null;
+
+            _spriteBuffer?.Dispose();
+            _spriteBuffer = null;
         }
 
         private void ShowIncorrectAnswerMessage()
@@ -1174,17 +1359,28 @@ namespace CodeRift.Forms
 
             if (result == BattleResult.PlayerDefeat)
             {
-                ShowFinalVent(playerWon: false);
+                HandleBattleLose();
                 return;
             }
-            else if (result == BattleResult.EnemyDefeat)
+
+            if (result == BattleResult.EnemyDefeat)
             {
-                ProgressManager.Instance.CompleteLevel(Level);
-                ShowFinalVent(playerWon: true);
+                HandleBattleWin();
                 return;
             }
 
             Close();
+        }
+
+        private void HandleBattleWin()
+        {
+            ProgressManager.Instance.CompleteLevel(Level);
+            ShowFinalVent(playerWon: true);
+        }
+
+        private void HandleBattleLose()
+        {
+            ShowFinalVent(playerWon: false);
         }
 
         private void ShowFinalVent(bool playerWon)
@@ -1326,6 +1522,11 @@ namespace CodeRift.Forms
         private void btnBack_Click(object sender, EventArgs e)
         {
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
+            CloseBattleArena();
+        }
+
+        private void CloseBattleArena()
+        {
             _animTimer.Stop();
             Close();
         }
@@ -1335,19 +1536,15 @@ namespace CodeRift.Forms
             _animTimer.Stop();
             _animTimer.Dispose();
             AudioManager.Instance.StopMusic();
-            if (ReferenceEquals(_spriteCanvas.Image, _spriteBuffer))
-            {
-                _spriteCanvas.Image = null;
-            }
-            _spriteBuffer?.Dispose();
-            DisposeFrameSet(_playerRunFrames);
-            DisposeFrameSet(_enemyRunFrames);
-            DisposeFrameSet(_playerIdleFrames);
-            DisposeFrameSet(_enemyIdleFrames);
-            DisposeFrameSet(_playerAtkFrames);
-            DisposeFrameSet(_enemyAtkFrames);
-            DisposeFrameSet(_playerHurtFrames);
-            DisposeFrameSet(_enemyHurtFrames);
+            DisposeSpriteBufferResources();
+            DisposeFrameSet(_playerActor.RunFrames);
+            DisposeFrameSet(_enemyActor.RunFrames);
+            DisposeFrameSet(_playerActor.IdleFrames);
+            DisposeFrameSet(_enemyActor.IdleFrames);
+            DisposeFrameSet(_playerActor.AttackFrames);
+            DisposeFrameSet(_enemyActor.AttackFrames);
+            DisposeFrameSet(_playerActor.HurtFrames);
+            DisposeFrameSet(_enemyActor.HurtFrames);
             DisposeControlImages(
                 picPlayerThumb,
                 picEnemyThumb,

@@ -12,8 +12,13 @@
     <Folder Include="Assets\Audio\sfx\" />
     <Folder Include="Assets\Audio\music\" />
     <Folder Include="Core\" />
+    <Folder Include="Core\Battle\" />
+    <Folder Include="Core\Questions\" />
+    <Folder Include="Core\Transitions\" />
     <Folder Include="Entities\" />
     <Folder Include="Managers\" />
+    <Folder Include="Managers\Progress\" />
+    <Folder Include="Managers\Questions\" />
     <Folder Include="Utils\" />
   </ItemGroup>
 
