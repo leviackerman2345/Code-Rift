@@ -178,7 +178,7 @@ namespace CodeRift.Forms
             lblPlayerHP.ForeColor = Color.White;
             lblPlayerHP.Location = new Point(110, 75);
             lblPlayerHP.Name = "lblPlayerHP";
-            lblPlayerHP.Size = new Size(69, 34);
+            lblPlayerHP.Size = new Size(120, 34);
             lblPlayerHP.TabIndex = 2;
             lblPlayerHP.Text = "100";
             // 
@@ -187,7 +187,7 @@ namespace CodeRift.Forms
             lblPlayerHPMax.AutoSize = true;
             lblPlayerHPMax.Font = new Font("Courier New", 10F);
             lblPlayerHPMax.ForeColor = Color.LightGray;
-            lblPlayerHPMax.Location = new Point(175, 88);
+            lblPlayerHPMax.Location = new Point(230, 88);
             lblPlayerHPMax.Name = "lblPlayerHPMax";
             lblPlayerHPMax.Size = new Size(72, 17);
             lblPlayerHPMax.TabIndex = 3;
@@ -263,9 +263,9 @@ namespace CodeRift.Forms
             lblEnemyHP.Anchor = AnchorStyles.Top | AnchorStyles.Right;
             lblEnemyHP.Font = new Font("Courier New", 22F, FontStyle.Bold);
             lblEnemyHP.ForeColor = Color.White;
-            lblEnemyHP.Location = new Point(1094, 75);
+            lblEnemyHP.Location = new Point(1052, 75);
             lblEnemyHP.Name = "lblEnemyHP";
-            lblEnemyHP.Size = new Size(78, 33);
+            lblEnemyHP.Size = new Size(120, 33);
             lblEnemyHP.TabIndex = 9;
             lblEnemyHP.Text = "100";
             lblEnemyHP.TextAlign = ContentAlignment.TopRight;
@@ -277,7 +277,7 @@ namespace CodeRift.Forms
             lblEnemyHPMax.AutoSize = true;
             lblEnemyHPMax.Font = new Font("Courier New", 10F);
             lblEnemyHPMax.ForeColor = Color.LightGray;
-            lblEnemyHPMax.Location = new Point(1030, 88);
+            lblEnemyHPMax.Location = new Point(970, 88);
             lblEnemyHPMax.Name = "lblEnemyHPMax";
             lblEnemyHPMax.Size = new Size(72, 17);
             lblEnemyHPMax.TabIndex = 8;

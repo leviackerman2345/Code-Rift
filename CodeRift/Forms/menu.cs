@@ -212,18 +212,19 @@ namespace CodeRift.Forms
             }
 
             // Story route: menu -> prologue.
-            ShowChildAndResumeMenuMusic(new StoryForm(StoryScripts.CreatePrologue()));
+            ShowChildAndResumeMenuMusic(() => new StoryForm(StoryScripts.CreatePrologue()));
         }
 
         private void OpenLevelsMenu()
         {
             // Direct route: menu -> levels.
-            ShowChildAndResumeMenuMusic(new LevelsMenuForm());
+            ShowChildAndResumeMenuMusic(() => new LevelsMenuForm());
         }
 
-        private void ShowChildAndResumeMenuMusic(Form childForm)
+        private void ShowChildAndResumeMenuMusic(Func<Form> childFormFactory)
         {
             AudioManager.Instance.StopMusic();
+            Form childForm = childFormFactory();
             if (!FormTransitionManager.ShowChild(this, childForm, ResumeMenuMusicAndStayOpen))
             {
                 childForm.Dispose();

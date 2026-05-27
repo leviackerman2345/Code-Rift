@@ -53,7 +53,7 @@ namespace CodeRift.Core
             { 2, new LevelConfig(2, new EnemyConfig("VOID_CRAWLER", "enemy2", "enemy_level_2.jpeg", 1.75f, true, 40, 300, 340)) },
             { 3, new LevelConfig(3, new EnemyConfig("STRING_CORRUPTOR", "enemy3", "enemy_level_3.jpeg", 1.75f, true, 40, 300, 340)) },
             { 4, new LevelConfig(4, new EnemyConfig("ARRAY_CRASHER", "enemy4", "enemy_level_4.jpeg", 1.75f, true, 40, 300, 340)) },
-            { 5, new LevelConfig(5, new EnemyConfig("NULL_KING", "enemy5", "enemy_level_5.jpeg", 1.75f, true, 40, 300, 340, 115), opensEpilogueOnWin: true) }
+            { 5, new LevelConfig(5, new EnemyConfig("NULL_KING", "enemy5", "enemy_level_5.jpeg", 1.75f, true, 40, 300, 340, 0), opensEpilogueOnWin: true) }
         };
 
         public int Level { get; private set; }
