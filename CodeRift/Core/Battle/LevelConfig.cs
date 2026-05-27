@@ -26,28 +26,28 @@ namespace CodeRift.Core
             GroundYOffset = groundYOffset;
         }
 
-        public string Name { get; }
+        public string Name { get; private set; }
 
-        public string AssetFolder { get; }
+        public string AssetFolder { get; private set; }
 
-        public string PortraitFileName { get; }
+        public string PortraitFileName { get; private set; }
 
-        public float RenderScale { get; }
+        public float RenderScale { get; private set; }
 
-        public bool CenterActorsByWidth { get; }
+        public bool CenterActorsByWidth { get; private set; }
 
-        public int ActorIdleGap { get; }
+        public int ActorIdleGap { get; private set; }
 
-        public int PlayerAttackContactOverlap { get; }
+        public int PlayerAttackContactOverlap { get; private set; }
 
-        public int EnemyAttackContactOverlap { get; }
+        public int EnemyAttackContactOverlap { get; private set; }
 
-        public int GroundYOffset { get; }
+        public int GroundYOffset { get; private set; }
     }
 
     public sealed class LevelConfig
     {
-        private static readonly Dictionary<int, LevelConfig> ConfigByLevel = new()
+        private static readonly Dictionary<int, LevelConfig> ConfigByLevel = new Dictionary<int, LevelConfig>()
         {
             { 1, new LevelConfig(1, new EnemyConfig("LOOPBUG", "enemy1", "enemy_level_1.jpeg", 1.12f)) },
             { 2, new LevelConfig(2, new EnemyConfig("VOID_CRAWLER", "enemy2", "enemy_level_2.jpeg", 1.75f, true, 40, 300, 340)) },
@@ -56,27 +56,27 @@ namespace CodeRift.Core
             { 5, new LevelConfig(5, new EnemyConfig("NULL_KING", "enemy5", "enemy_level_5.jpeg", 1.75f, true, 40, 300, 340, 115), opensEpilogueOnWin: true) }
         };
 
-        public int Level { get; }
+        public int Level { get; private set; }
 
-        public EnemyConfig Enemy { get; }
+        public EnemyConfig Enemy { get; private set; }
 
-        public bool OpensEpilogueOnWin { get; }
+        public bool OpensEpilogueOnWin { get; private set; }
 
-        public string EnemyName => Enemy.Name;
+        public string EnemyName { get { return Enemy.Name; } }
 
-        public string EnemyAssetFolder => Enemy.AssetFolder;
+        public string EnemyAssetFolder { get { return Enemy.AssetFolder; } }
 
-        public float EnemyRenderScale => Enemy.RenderScale;
+        public float EnemyRenderScale { get { return Enemy.RenderScale; } }
 
-        public bool CenterActorsByWidth => Enemy.CenterActorsByWidth;
+        public bool CenterActorsByWidth { get { return Enemy.CenterActorsByWidth; } }
 
-        public int ActorIdleGap => Enemy.ActorIdleGap;
+        public int ActorIdleGap { get { return Enemy.ActorIdleGap; } }
 
-        public int PlayerAttackContactOverlap => Enemy.PlayerAttackContactOverlap;
+        public int PlayerAttackContactOverlap { get { return Enemy.PlayerAttackContactOverlap; } }
 
-        public int EnemyAttackContactOverlap => Enemy.EnemyAttackContactOverlap;
+        public int EnemyAttackContactOverlap { get { return Enemy.EnemyAttackContactOverlap; } }
 
-        public int EnemyGroundYOffset => Enemy.GroundYOffset;
+        public int EnemyGroundYOffset { get { return Enemy.GroundYOffset; } }
 
         private LevelConfig(int level, EnemyConfig enemy, bool opensEpilogueOnWin = false)
         {
@@ -87,9 +87,10 @@ namespace CodeRift.Core
 
         public static LevelConfig ForLevel(int level)
         {
-            return ConfigByLevel.TryGetValue(level, out LevelConfig? config)
-                ? config
-                : new LevelConfig(level, new EnemyConfig("UNKNOWN", "enemy1", "enemy_level_1.jpeg"));
+            LevelConfig config;
+            if (ConfigByLevel.TryGetValue(level, out config))
+                return config;
+            return new LevelConfig(level, new EnemyConfig("UNKNOWN", "enemy1", "enemy_level_1.jpeg"));
         }
     }
 }

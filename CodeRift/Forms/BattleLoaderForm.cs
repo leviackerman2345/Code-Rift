@@ -16,13 +16,13 @@ namespace CodeRift.Forms
     {
         public int Level { get; private set; }
         public bool LoadSuccessful = false;
-        public Action? OnComplete;
+        public Action OnComplete;
 
-        private Image? _currentBackground;
-        private readonly Dictionary<string, Image> _preScaledBackgrounds = new();
+        private Image _currentBackground;
+        private readonly Dictionary<string, Image> _preScaledBackgrounds = new Dictionary<string, Image>();
         private float _targetProgress = 0f;
         private float _currentProgress = 0f;
-        private readonly System.Windows.Forms.Timer _smoothTimer = new();
+        private readonly System.Windows.Forms.Timer _smoothTimer = new System.Windows.Forms.Timer();
         private bool _loadStarted = false;
         private string _currentStatus = "INITIALIZING DECRYPTION PROTOCOLS...";
 
@@ -45,7 +45,7 @@ namespace CodeRift.Forms
         {
             try
             {
-                string loaderPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Images", "battle_loader", $"level{Level}.png");
+                string loaderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Images", "battle_loader", string.Format("level{0}.png", Level));
                 if (File.Exists(loaderPath))
                 {
                     _currentBackground = Image.FromFile(loaderPath);
@@ -53,7 +53,7 @@ namespace CodeRift.Forms
                 else
                 {
                     // Fallback to normal level background if specific loader image is missing
-                    string fallbackPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Images", "backgrounds", "level_background", $"level{Level}.png");
+                    string fallbackPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "Images", "backgrounds", "level_background", string.Format("level{0}.png", Level));
                     if (File.Exists(fallbackPath))
                     {
                         _currentBackground = Image.FromFile(fallbackPath);
@@ -80,7 +80,7 @@ namespace CodeRift.Forms
             if (!_loadStarted)
             {
                 _loadStarted = true;
-                Task.Run(ExecuteLoadingRoutineAsync);
+                Task.Run(new Func<Task>(ExecuteLoadingRoutineAsync));
             }
         }
 
@@ -113,7 +113,7 @@ namespace CodeRift.Forms
             }
         }
 
-        private void SmoothTimer_Tick(object? sender, EventArgs e)
+        private void SmoothTimer_Tick(object sender, EventArgs e)
         {
             // Smooth exponential slide to target progress
             _currentProgress += (_targetProgress - _currentProgress) * 0.08f;
@@ -121,7 +121,7 @@ namespace CodeRift.Forms
             if (_targetProgress >= 100f && Math.Abs(100f - _currentProgress) < 0.5f)
             {
                 _currentProgress = 100f;
-                lblStatus.Text = $"> {_currentStatus} [ 100% ]";
+                lblStatus.Text = string.Format("> {0} [ 100% ]", _currentStatus);
                 _smoothTimer.Stop();
 
                 // Graceful short delay before closing to let player appreciate the 100% completion state
@@ -130,13 +130,13 @@ namespace CodeRift.Forms
                     BeginInvoke(new Action(() =>
                     {
                         LoadSuccessful = true;
-                        OnComplete?.Invoke();
+                        if (OnComplete != null) OnComplete.Invoke();
                     }));
                 });
             }
             else
             {
-                lblStatus.Text = $"> {_currentStatus} [ {(int)Math.Round(_currentProgress)}% ]";
+                lblStatus.Text = string.Format("> {0} [ {1}% ]", _currentStatus, (int)Math.Round(_currentProgress));
             }
 
             Invalidate();
@@ -174,7 +174,7 @@ namespace CodeRift.Forms
                 return;
             }
 
-            string cacheKey = $"{Width}x{Height}";
+            string cacheKey = string.Format("{0}x{1}", Width, Height);
             if (_preScaledBackgrounds.ContainsKey(cacheKey))
             {
                 return;
@@ -205,8 +205,9 @@ namespace CodeRift.Forms
             Graphics g = e.Graphics;
 
             // Draw pre-scaled high quality background
-            string cacheKey = $"{Width}x{Height}";
-            if (_preScaledBackgrounds.TryGetValue(cacheKey, out Image? bg))
+            string cacheKey = string.Format("{0}x{1}", Width, Height);
+            Image bg;
+            if (_preScaledBackgrounds.TryGetValue(cacheKey, out bg))
             {
                 g.DrawImage(bg, 0, 0);
             }
@@ -263,7 +264,7 @@ namespace CodeRift.Forms
             _smoothTimer.Stop();
             _smoothTimer.Dispose();
 
-            _currentBackground?.Dispose();
+            if (_currentBackground != null) _currentBackground.Dispose();
             foreach (var kvp in _preScaledBackgrounds)
             {
                 kvp.Value.Dispose();

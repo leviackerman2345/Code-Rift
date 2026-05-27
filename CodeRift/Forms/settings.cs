@@ -11,11 +11,11 @@ namespace CodeRift.Forms
     // Settings modal: language toggle, SFX toggle, and volume/mute UI state.
     public partial class SettingsForm : Form
     {
-        private Image? _hoverImage;
-        private Bitmap? _iconVolume;
-        private Bitmap? _iconMute;
-        private Bitmap? _flagPH;
-        private Bitmap? _flagEN;
+        private Image _hoverImage;
+        private Bitmap _iconVolume;
+        private Bitmap _iconMute;
+        private Bitmap _flagPH;
+        private Bitmap _flagEN;
         private bool _isMuted = false;
         private int _lastVolume = 80;
 
@@ -163,7 +163,8 @@ namespace CodeRift.Forms
             Color matrixGreen = Color.FromArgb(0, 255, 65);
             foreach (Control ctrl in terminalBody.Controls)
             {
-                if (ctrl is Button btn)
+                Button btn = ctrl as Button;
+                if (btn != null)
                 {
                     btn.FlatStyle = FlatStyle.Flat;
                     if (btn != btnFilipino && btn != btnEnglish)
@@ -181,11 +182,11 @@ namespace CodeRift.Forms
         private void AttachButtonHoverEvents(Button button, Color matrixGreen)
         {
             button.Click += Button_ClickSfx;
-            button.MouseEnter += (_, _) => ApplyButtonHoverState(button);
-            button.MouseLeave += (_, _) => ResetButtonHoverState(button, matrixGreen);
+            button.MouseEnter += (s, e) => ApplyButtonHoverState(button);
+            button.MouseLeave += (s, e) => ResetButtonHoverState(button, matrixGreen);
         }
 
-        private static void Button_ClickSfx(object? sender, EventArgs e)
+        private static void Button_ClickSfx(object sender, EventArgs e)
         {
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
         }
@@ -233,12 +234,12 @@ namespace CodeRift.Forms
             btnSfxToggle.Click += SfxToggleButton_Click;
         }
 
-        private void BackButton_Click(object? sender, EventArgs e)
+        private void BackButton_Click(object sender, EventArgs e)
         {
             Close();
         }
 
-        private void VolumeIcon_Click(object? sender, EventArgs e)
+        private void VolumeIcon_Click(object sender, EventArgs e)
         {
             _isMuted = !_isMuted;
             if (_isMuted)
@@ -255,7 +256,7 @@ namespace CodeRift.Forms
             AudioManager.Instance.SetVolume(volSlider.Value);
         }
 
-        private void VolumeSlider_ValueChanged(object? sender, EventArgs e)
+        private void VolumeSlider_ValueChanged(object sender, EventArgs e)
         {
             if (volSlider.Value > 0)
             {
@@ -271,17 +272,17 @@ namespace CodeRift.Forms
             AudioManager.Instance.SetVolume(volSlider.Value);
         }
 
-        private void FilipinoButton_Click(object? sender, EventArgs e)
+        private void FilipinoButton_Click(object sender, EventArgs e)
         {
             SwitchLanguage(Constants.LANG_PH);
         }
 
-        private void EnglishButton_Click(object? sender, EventArgs e)
+        private void EnglishButton_Click(object sender, EventArgs e)
         {
             SwitchLanguage(Constants.LANG_EN);
         }
 
-        private void SfxToggleButton_Click(object? sender, EventArgs e)
+        private void SfxToggleButton_Click(object sender, EventArgs e)
         {
             AudioManager.Instance.IsSFXEnabled = !AudioManager.Instance.IsSFXEnabled;
             UpdateSfxToggleButton();
@@ -298,7 +299,8 @@ namespace CodeRift.Forms
             LanguageManager.Instance.Switch(languageCode);
             ApplyLanguageSelection();
 
-            if (Owner is MenuForm mainMenu)
+            MenuForm mainMenu = Owner as MenuForm;
+            if (mainMenu != null)
             {
                 mainMenu.ApplyLanguage();
             }
@@ -347,19 +349,19 @@ namespace CodeRift.Forms
             phFlagIcon.Image = null;
             enFlagIcon.Image = null;
 
-            _hoverImage?.Dispose();
+            if (_hoverImage != null) _hoverImage.Dispose();
             _hoverImage = null;
 
-            _iconVolume?.Dispose();
+            if (_iconVolume != null) _iconVolume.Dispose();
             _iconVolume = null;
 
-            _iconMute?.Dispose();
+            if (_iconMute != null) _iconMute.Dispose();
             _iconMute = null;
 
-            _flagPH?.Dispose();
+            if (_flagPH != null) _flagPH.Dispose();
             _flagPH = null;
 
-            _flagEN?.Dispose();
+            if (_flagEN != null) _flagEN.Dispose();
             _flagEN = null;
 
             base.OnFormClosing(e);

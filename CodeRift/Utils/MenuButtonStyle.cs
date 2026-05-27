@@ -40,7 +40,7 @@ namespace CodeRift.Utils
 
             if (ButtonsWithHoverEvents.Add(button))
             {
-                button.MouseEnter += (_, _) =>
+                button.MouseEnter += (s, e) =>
                 {
                     if (!button.Enabled || LockedButtons.Contains(button))
                     {
@@ -51,7 +51,7 @@ namespace CodeRift.Utils
                     SetHoverVisual(button, hovered: true);
                 };
 
-                button.MouseLeave += (_, _) =>
+                button.MouseLeave += (s, e) =>
                 {
                     if (LockedButtons.Contains(button))
                     {
@@ -63,7 +63,7 @@ namespace CodeRift.Utils
 
             if (playClickSound)
             {
-                button.Click += (_, _) => AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
+                button.Click += (s, e) => AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             }
 
             SetHoverVisual(button, hovered: false);
@@ -137,14 +137,15 @@ namespace CodeRift.Utils
             button.ForeColor = HoverBlack;
             button.FlatAppearance.BorderColor = HoverBlack;
 
-            bool useHoverImage = HoverImageEnabledByButton.TryGetValue(button, out bool isEnabled) && isEnabled;
+            bool isEnabled;
+            bool useHoverImage = HoverImageEnabledByButton.TryGetValue(button, out isEnabled) && isEnabled;
             if (!useHoverImage)
             {
                 button.BackgroundImage = null;
                 return;
             }
 
-            Image? hoverImage = GetSizedHoverImage(button.Size);
+            Image hoverImage = GetSizedHoverImage(button.Size);
             if (hoverImage != null)
             {
                 button.BackgroundImage = hoverImage;
@@ -152,20 +153,21 @@ namespace CodeRift.Utils
             }
         }
 
-        private static Image? GetSizedHoverImage(Size size)
+        private static Image GetSizedHoverImage(Size size)
         {
             if (size.Width <= 0 || size.Height <= 0)
             {
                 return null;
             }
 
-            string key = $"{size.Width}x{size.Height}";
-            if (HoverImagesBySize.TryGetValue(key, out Image? cached))
+            string key = string.Format("{0}x{1}", size.Width, size.Height);
+            Image cached;
+            if (HoverImagesBySize.TryGetValue(key, out cached))
             {
                 return cached;
             }
 
-            Image? source = ImageManager.Instance.GetImage(Constants.IMG_UI_BUTTON);
+            Image source = ImageManager.Instance.GetImage(Constants.IMG_UI_BUTTON);
             if (source == null)
             {
                 return null;

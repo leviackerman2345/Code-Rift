@@ -14,7 +14,7 @@ namespace CodeRift.Core
         public const string SkipCurrentQuestionText = "///";
         public const string SkipAllQuestionsText = "/////";
 
-        public static QuestionSkipCommandType Parse(string? input)
+        public static QuestionSkipCommandType Parse(string input)
         {
             string command = (input ?? string.Empty).Trim();
 

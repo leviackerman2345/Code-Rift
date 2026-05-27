@@ -1,3 +1,6 @@
+using System.Drawing;
+using System.Windows.Forms;
+
 namespace CodeRift.Forms
 {
     partial class MenuForm

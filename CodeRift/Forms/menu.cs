@@ -13,7 +13,7 @@ namespace CodeRift.Forms
     // Main menu hub: routes player into story/levels/settings/credits.
     public partial class MenuForm : Form
     {
-        private Image? _backgroundImage;
+        private Image _backgroundImage;
 
         public MenuForm()
 
@@ -27,7 +27,7 @@ namespace CodeRift.Forms
             btnPlay.Click += btnPlay_Click;
         }
 
-        private void btnPlay_Click(object? sender, EventArgs e)
+        private void btnPlay_Click(object sender, EventArgs e)
         {
             OpenPrologue();
         }
@@ -38,7 +38,8 @@ namespace CodeRift.Forms
             {
                 foreach (Control ctrl in buttonContainer.Controls)
                 {
-                    if (ctrl is Button btn)
+                    Button btn = ctrl as Button;
+                    if (btn != null)
                     {
                         MenuButtonStyle.Apply(btn, btn.Text, useMenuSize: true, playClickSound: true, useHoverImage: true);
                     }
@@ -55,9 +56,8 @@ namespace CodeRift.Forms
 
             if (buttonContainer != null)
             {
-                typeof(Control)
-                    .GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic)
-                    ?.SetValue(buttonContainer, true, null);
+                var prop = typeof(Control).GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic);
+                if (prop != null) prop.SetValue(buttonContainer, true, null);
             }
         }
 
@@ -74,12 +74,12 @@ namespace CodeRift.Forms
         private void LoadAssets()
         {
             // Pull preloaded assets from managers (loaded during splash).
-            Image? menuBg = ImageManager.Instance.GetImage(Constants.IMG_BG_MENU);
+            Image menuBg = ImageManager.Instance.GetImage(Constants.IMG_BG_MENU);
             if (menuBg != null)
             {
                 // Pre-scale the image to exactly the screen size. This prevents GDI+ from having 
                 // to perform an expensive stretch operation on every single Opacity tick.
-                Rectangle bounds = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 1920, 1080);
+                Rectangle bounds = Screen.PrimaryScreen != null ? Screen.PrimaryScreen.Bounds : new Rectangle(0, 0, 1920, 1080);
                 Bitmap preScaledDimmed = new Bitmap(bounds.Width, bounds.Height);
                 using (Graphics g = Graphics.FromImage(preScaledDimmed))
                 {
@@ -165,19 +165,20 @@ namespace CodeRift.Forms
 
             foreach (Control ctrl in buttonContainer.Controls)
             {
-                if (ctrl is Button btn)
+                Button btn = ctrl as Button;
+                if (btn != null)
                 {
                     MenuButtonStyle.SyncHoverVisualState(btn);
                 }
             }
         }
 
-        private void btnExit_Click(object? sender, EventArgs e)
+        private void btnExit_Click(object sender, EventArgs e)
         {
             Application.Exit();
         }
 
-        private void btnSettings_Click(object? sender, EventArgs e)
+        private void btnSettings_Click(object sender, EventArgs e)
         {
             using (SettingsForm settingsForm = new SettingsForm())
             {
@@ -185,7 +186,7 @@ namespace CodeRift.Forms
             }
         }
 
-        private void btnCredits_Click(object? sender, EventArgs e)
+        private void btnCredits_Click(object sender, EventArgs e)
         {
             using (CreditsForm creditsForm = new CreditsForm())
             {
@@ -193,7 +194,7 @@ namespace CodeRift.Forms
             }
         }
 
-        private void btnLevels_Click(object? sender, EventArgs e)
+        private void btnLevels_Click(object sender, EventArgs e)
         {
             if (FormTransitionManager.IsTransitioning)
             {
@@ -238,14 +239,14 @@ namespace CodeRift.Forms
 
         public void ApplyLanguage()
         {
-            if (btnPlay != null) btnPlay.Text = $"[{LanguageManager.Instance.Get("menu_play").ToUpperInvariant()}]";
+            if (btnPlay != null) btnPlay.Text = string.Format("[{0}]", LanguageManager.Instance.Get("menu_play").ToUpperInvariant());
             if (btnLevels != null) btnLevels.Text = "[LEVELS]";
-            if (btnSettings != null) btnSettings.Text = $"[{LanguageManager.Instance.Get("menu_settings").ToUpperInvariant()}]";
-            if (btnCredits != null) btnCredits.Text = $"[{LanguageManager.Instance.Get("menu_credits").ToUpperInvariant()}]";
-            if (btnExit != null) btnExit.Text = $"[{LanguageManager.Instance.Get("menu_quit").ToUpperInvariant()}]";
+            if (btnSettings != null) btnSettings.Text = string.Format("[{0}]", LanguageManager.Instance.Get("menu_settings").ToUpperInvariant());
+            if (btnCredits != null) btnCredits.Text = string.Format("[{0}]", LanguageManager.Instance.Get("menu_credits").ToUpperInvariant());
+            if (btnExit != null) btnExit.Text = string.Format("[{0}]", LanguageManager.Instance.Get("menu_quit").ToUpperInvariant());
         }
 
-        private void menu_Load(object? sender, EventArgs e)
+        private void menu_Load(object sender, EventArgs e)
         {
             ApplyLanguage();
             AudioManager.Instance.PlayMusic(Constants.MUSIC_MENU);
@@ -265,7 +266,7 @@ namespace CodeRift.Forms
         {
             ProgressManager.Instance.ResetProgress();
             BackgroundImage = null;
-            _backgroundImage?.Dispose();
+            if (_backgroundImage != null) _backgroundImage.Dispose();
             _backgroundImage = null;
             base.OnFormClosing(e);
         }

@@ -25,11 +25,11 @@ namespace CodeRift.Forms
                 Key = "FINAL_VENT_" + fileName;
             }
 
-            public string FileName { get; }
+            public string FileName { get; private set; }
 
-            public string Path { get; }
+            public string Path { get; private set; }
 
-            public string Key { get; }
+            public string Key { get; private set; }
         }
 
         public FinalVentForm()
@@ -42,7 +42,7 @@ namespace CodeRift.Forms
         {
             string resultFileName = BuildResultFileName(level, playerWon);
             List<FinalVentImageRef> allImages = LoadFinalVentImageRefs();
-            FinalVentImageRef? resultImage = allImages.FirstOrDefault(
+            FinalVentImageRef resultImage = allImages.FirstOrDefault(
                 image => string.Equals(image.FileName, resultFileName, StringComparison.OrdinalIgnoreCase));
 
             if (resultImage != null)
@@ -60,7 +60,7 @@ namespace CodeRift.Forms
 
         private static string BuildResultFileName(int level, bool playerWon)
         {
-            return $"level{level}_{(playerWon ? "win" : "lose")}.png";
+            return string.Format("level{0}_{1}.png", level, playerWon ? "win" : "lose");
         }
 
         private void InitializeAndShow()
@@ -94,7 +94,7 @@ namespace CodeRift.Forms
         private void EnableDoubleBuffer(Control control)
         {
             var property = typeof(Control).GetProperty("DoubleBuffered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            property?.SetValue(control, true, null);
+            if (property != null) property.SetValue(control, true, null);
 
             foreach (Control child in control.Controls)
             {
@@ -136,7 +136,7 @@ namespace CodeRift.Forms
             _imageBox.Image = ImageManager.Instance.GetOrLoadImage(image.Key, image.Path);
         }
 
-        private void ContinueButton_Click(object? sender, EventArgs e)
+        private void ContinueButton_Click(object sender, EventArgs e)
         {
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             AdvanceImageOrClose();

@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Windows.Forms;
+using Newtonsoft.Json;
 using CodeRift.Entities;
 
 namespace CodeRift.Managers
@@ -14,8 +14,18 @@ namespace CodeRift.Managers
     /// </summary>
     public class QuestionManager
     {
-        private static QuestionManager? _instance;
-        public static QuestionManager Instance => _instance ??= new QuestionManager();
+        private static QuestionManager _instance;
+        public static QuestionManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = new QuestionManager();
+                }
+                return _instance;
+            }
+        }
 
         private List<Question> _allQuestions = new List<Question>();
         private readonly Dictionary<int, List<Question>> _questionsByLevel = new Dictionary<int, List<Question>>();
@@ -38,7 +48,7 @@ namespace CodeRift.Managers
                 if (File.Exists(path))
                 {
                     string json = File.ReadAllText(path);
-                    var bank = JsonSerializer.Deserialize<QuestionBank>(json);
+                    var bank = JsonConvert.DeserializeObject<QuestionBank>(json);
                     
                     if (bank != null)
                     {
@@ -62,9 +72,11 @@ namespace CodeRift.Managers
         /// <returns>A Question object, or a fallback if none found.</returns>
         public Question GetRandomQuestion(int level)
         {
-            if (_questionsByLevel.TryGetValue(level, out List<Question>? levelQuestions) && levelQuestions.Count > 0)
+            List<Question> levelQuestions;
+            if (_questionsByLevel.TryGetValue(level, out levelQuestions) && levelQuestions.Count > 0)
             {
-                if (!_levelQuestionIndices.TryGetValue(level, out int index))
+                int index;
+                if (!_levelQuestionIndices.TryGetValue(level, out index))
                 {
                     index = 0;
                 }
@@ -90,7 +102,7 @@ namespace CodeRift.Managers
         /// <summary>
         /// Forces a reload of the questions (useful for debugging).
         /// </summary>
-        public void Reload() => LoadQuestions();
+        public void Reload() { LoadQuestions(); }
 
         private void BuildLevelQuestionCache()
         {
@@ -98,7 +110,8 @@ namespace CodeRift.Managers
 
             foreach (Question question in _allQuestions)
             {
-                if (!_questionsByLevel.TryGetValue(question.Level, out List<Question>? list))
+                List<Question> list;
+                if (!_questionsByLevel.TryGetValue(question.Level, out list))
                 {
                     list = new List<Question>();
                     _questionsByLevel[question.Level] = list;

@@ -17,7 +17,7 @@ namespace CodeRift.Forms
         private static readonly Color MatrixGreen = Color.FromArgb(0, 255, 65);
         private static readonly Color CrawlTextColor = Color.FromArgb(255, 230, 95);
 
-        private Image? _backgroundImage;
+        private Image _backgroundImage;
 
         private readonly System.Windows.Forms.Timer _creditsScrollTimer = new System.Windows.Forms.Timer();
         private readonly List<string> _creditsLines = new List<string>();
@@ -58,9 +58,8 @@ namespace CodeRift.Forms
 
         private static void EnableDoubleBuffer(Control control)
         {
-            typeof(Control)
-                .GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?.SetValue(control, true, null);
+            var prop = typeof(Control).GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (prop != null) prop.SetValue(control, true, null);
         }
 
         private void ConfigureFullScreenWindow()
@@ -109,7 +108,7 @@ namespace CodeRift.Forms
 
             foreach (var credit in credits)
             {
-                _creditsLines.Add($"[ {credit.Role} ]");
+                _creditsLines.Add(string.Format("[ {0} ]", credit.Role));
                 _creditsLines.Add(credit.Name);
                 _creditsLines.Add(string.Empty);
             }
@@ -119,7 +118,7 @@ namespace CodeRift.Forms
             tableLayoutPanel1.Visible = false;
         }
 
-        private void CreditsScrollTimer_Tick(object? sender, EventArgs e)
+        private void CreditsScrollTimer_Tick(object sender, EventArgs e)
         {
             _crawlOffset += CreditsScrollSpeed;
 
@@ -132,7 +131,7 @@ namespace CodeRift.Forms
             mainContainer.Invalidate();
         }
 
-        private void MainContainer_Paint(object? sender, PaintEventArgs e)
+        private void MainContainer_Paint(object sender, PaintEventArgs e)
         {
             if (_creditsLines.Count == 0)
             {
@@ -159,7 +158,7 @@ namespace CodeRift.Forms
             }
         }
 
-        private static Image? TryLoadDimmedBackground(float alpha)
+        private static Image TryLoadDimmedBackground(float alpha)
         {
             string[] relativePaths =
             {
@@ -177,25 +176,31 @@ namespace CodeRift.Forms
 
                 try
                 {
-                    using Image original = Image.FromFile(path);
-                    Bitmap dimmed = new Bitmap(original.Width, original.Height);
+                    using (Image original = Image.FromFile(path))
+                    {
+                        Bitmap dimmed = new Bitmap(original.Width, original.Height);
 
-                    using Graphics g = Graphics.FromImage(dimmed);
-                    ColorMatrix matrix = new ColorMatrix { Matrix33 = alpha };
-                    using ImageAttributes attributes = new ImageAttributes();
-                    attributes.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
+                        using (Graphics g = Graphics.FromImage(dimmed))
+                        {
+                            ColorMatrix matrix = new ColorMatrix { Matrix33 = alpha };
+                            using (ImageAttributes attributes = new ImageAttributes())
+                            {
+                                attributes.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
 
-                    g.DrawImage(
-                        original,
-                        new Rectangle(0, 0, dimmed.Width, dimmed.Height),
-                        0,
-                        0,
-                        original.Width,
-                        original.Height,
-                        GraphicsUnit.Pixel,
-                        attributes);
+                                g.DrawImage(
+                                    original,
+                                    new Rectangle(0, 0, dimmed.Width, dimmed.Height),
+                                    0,
+                                    0,
+                                    original.Width,
+                                    original.Height,
+                                    GraphicsUnit.Pixel,
+                                    attributes);
+                            }
+                        }
 
-                    return dimmed;
+                        return dimmed;
+                    }
                 }
                 catch
                 {
@@ -207,7 +212,7 @@ namespace CodeRift.Forms
 
         private void DrawCrawlLine(Graphics g, float panelWidth, float panelHeight, string line, float worldY)
         {
-            float yNorm = Math.Clamp(worldY / panelHeight, 0f, 1f);
+            float yNorm = Math.Min(1f, Math.Max(0f, worldY / panelHeight));
             float perspective = 1f - yNorm; // 0 near bottom, 1 near top
 
             float scale = Math.Max(CrawlMinScale, 1f - (perspective * CrawlPerspectiveStrength));
@@ -221,15 +226,16 @@ namespace CodeRift.Forms
             FontStyle style = line.StartsWith("[", StringComparison.Ordinal) ? FontStyle.Bold : FontStyle.Regular;
             float fontSize = 40f * scale;
 
-            using Font font = new Font("Arial Black", fontSize, style, GraphicsUnit.Pixel);
-            using SolidBrush brush = new SolidBrush(CrawlTextColor);
-            using StringFormat format = new StringFormat
+            using (Font font = new Font("Arial Black", fontSize, style, GraphicsUnit.Pixel))
+            using (SolidBrush brush = new SolidBrush(CrawlTextColor))
+            using (StringFormat format = new StringFormat
             {
                 Alignment = StringAlignment.Center,
                 LineAlignment = StringAlignment.Near
-            };
-
-            g.DrawString(line, font, brush, new RectangleF(x, projectedY, lineWidth, CrawlLineSpacing * 1.2f), format);
+            })
+            {
+                g.DrawString(line, font, brush, new RectangleF(x, projectedY, lineWidth, CrawlLineSpacing * 1.2f), format);
+            }
         }
 
         protected override void OnShown(EventArgs e)
@@ -293,7 +299,7 @@ namespace CodeRift.Forms
             _creditsScrollTimer.Dispose();
             mainContainer.Paint -= MainContainer_Paint;
             BackgroundImage = null;
-            _backgroundImage?.Dispose();
+            if (_backgroundImage != null) _backgroundImage.Dispose();
             _backgroundImage = null;
 
 

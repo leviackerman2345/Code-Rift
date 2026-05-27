@@ -9,8 +9,8 @@ namespace CodeRift.Core
     /// </summary>
     public sealed class AttackCard
     {
-        public int Id { get; }
-        public int Damage { get; }
+        public int Id { get; private set; }
+        public int Damage { get; private set; }
 
         public AttackCard(int id, int damage)
         {
@@ -24,9 +24,9 @@ namespace CodeRift.Core
     /// </summary>
     public sealed class EnemyDifficultyProfile
     {
-        public int Level { get; }
-        public string Name { get; }
-        public int KeyNumbersPerCard { get; }
+        public int Level { get; private set; }
+        public string Name { get; private set; }
+        public int KeyNumbersPerCard { get; private set; }
 
         public EnemyDifficultyProfile(int level, string name, int keyNumbersPerCard)
         {
@@ -48,10 +48,10 @@ namespace CodeRift.Core
     /// </summary>
     public sealed class EnemyAttackEvent
     {
-        public int CardId { get; }
-        public int Damage { get; }
-        public int TriggerNumber { get; }
-        public bool TriggersAnotherAttack { get; }
+        public int CardId { get; private set; }
+        public int Damage { get; private set; }
+        public int TriggerNumber { get; private set; }
+        public bool TriggersAnotherAttack { get; private set; }
 
         public EnemyAttackEvent(int cardId, int damage, int triggerNumber, bool triggersAnotherAttack)
         {
@@ -67,17 +67,23 @@ namespace CodeRift.Core
     /// </summary>
     public sealed class PlayerTurnResult
     {
-        public int SelectedCardId { get; init; }
-        public bool AnswerCorrect { get; init; }
-        public bool PlayerAttacked { get; init; }
-        public int DamageToEnemy { get; init; }
-        public bool CardLocked { get; init; }
-        public int? LockedCardId { get; init; }
-        public bool RetryRequired { get; init; }
-        public string Message { get; init; } = string.Empty;
-        public BattleResult BattleResult { get; init; }
-        public QuestionSkipCommandType SkipCommand { get; init; }
-        public IReadOnlyList<EnemyAttackEvent> EnemyAttacks { get; init; } = Array.Empty<EnemyAttackEvent>();
+        public PlayerTurnResult()
+        {
+            Message = string.Empty;
+            EnemyAttacks = new List<EnemyAttackEvent>();
+        }
+
+        public int SelectedCardId { get; set; }
+        public bool AnswerCorrect { get; set; }
+        public bool PlayerAttacked { get; set; }
+        public int DamageToEnemy { get; set; }
+        public bool CardLocked { get; set; }
+        public int? LockedCardId { get; set; }
+        public bool RetryRequired { get; set; }
+        public string Message { get; set; }
+        public BattleResult BattleResult { get; set; }
+        public QuestionSkipCommandType SkipCommand { get; set; }
+        public List<EnemyAttackEvent> EnemyAttacks { get; set; }
     }
 
     public interface IRandomProvider
@@ -87,9 +93,11 @@ namespace CodeRift.Core
 
     public sealed class DefaultRandomProvider : IRandomProvider
     {
+        private static readonly Random _random = new Random();
+
         public int Next(int minValueInclusive, int maxValueExclusive)
         {
-            return Random.Shared.Next(minValueInclusive, maxValueExclusive);
+            return _random.Next(minValueInclusive, maxValueExclusive);
         }
     }
 
@@ -115,7 +123,7 @@ namespace CodeRift.Core
             int value = _values.Dequeue();
             if (value < minValueInclusive || value >= maxValueExclusive)
             {
-                throw new ArgumentOutOfRangeException(nameof(value), $"Value {value} is outside [{minValueInclusive}, {maxValueExclusive}).");
+                throw new ArgumentOutOfRangeException("value", string.Format("Value {0} is outside [{1}, {2}).", value, minValueInclusive, maxValueExclusive));
             }
 
             return value;
@@ -127,7 +135,7 @@ namespace CodeRift.Core
     /// </summary>
     public sealed class QuizBattleEngine
     {
-        private static readonly Dictionary<int, EnemyDifficultyProfile> _difficultyByLevel = new()
+        private static readonly Dictionary<int, EnemyDifficultyProfile> _difficultyByLevel = new Dictionary<int, EnemyDifficultyProfile>()
         {
             { 1, new EnemyDifficultyProfile(1, "Easy", 1) },
             { 2, new EnemyDifficultyProfile(2, "Normal", 2) },
@@ -140,25 +148,28 @@ namespace CodeRift.Core
         private const int SkipAllQuestionsDamage = 100;
 
         private readonly IRandomProvider _randomProvider;
-        private readonly Dictionary<int, HashSet<int>> _enemyCardKeyNumbers = new();
-        private readonly List<AttackCard> _attackCards = new();
+        private readonly Dictionary<int, HashSet<int>> _enemyCardKeyNumbers = new Dictionary<int, HashSet<int>>();
+        private readonly List<AttackCard> _attackCards = new List<AttackCard>();
 
-        public int PlayerHP { get; private set; } = 100;
-        public int EnemyHP { get; private set; } = 100;
+        public int PlayerHP { get; private set; }
+        public int EnemyHP { get; private set; }
         public int? LockedCardId { get; private set; }
-        public EnemyDifficultyProfile Difficulty { get; }
-        public IReadOnlyList<AttackCard> AttackCards => _attackCards;
+        public EnemyDifficultyProfile Difficulty { get; private set; }
+        public List<AttackCard> AttackCards { get { return _attackCards; } }
 
         public void ApplyChipDamageToPlayer(int amount)
         {
             PlayerHP = Math.Max(0, PlayerHP - amount);
         }
 
-        public QuizBattleEngine(int enemyLevel, IRandomProvider? randomProvider = null, Dictionary<int, HashSet<int>>? fixedEnemyCardKeyNumbers = null)
+        public QuizBattleEngine(int enemyLevel, IRandomProvider randomProvider = null, Dictionary<int, HashSet<int>> fixedEnemyCardKeyNumbers = null)
         {
-            if (!_difficultyByLevel.TryGetValue(enemyLevel, out var difficulty))
+            PlayerHP = 100;
+            EnemyHP = 100;
+            EnemyDifficultyProfile difficulty;
+            if (!_difficultyByLevel.TryGetValue(enemyLevel, out difficulty))
             {
-                throw new ArgumentOutOfRangeException(nameof(enemyLevel), "Enemy level must be in range 1..5.");
+                throw new ArgumentOutOfRangeException("enemyLevel", "Enemy level must be in range 1..5.");
             }
 
             Difficulty = difficulty;
@@ -225,7 +236,7 @@ namespace CodeRift.Core
                     CardLocked = false,
                     LockedCardId = null,
                     RetryRequired = false,
-                    Message = $"Correct answer. Card {selectedCardId} dealt {selectedCard.Damage} damage.",
+                    Message = string.Format("Correct answer. Card {0} dealt {1} damage.", selectedCardId, selectedCard.Damage),
                     BattleResult = CheckBattleResult()
                 };
             }
@@ -243,7 +254,7 @@ namespace CodeRift.Core
                 CardLocked = true,
                 LockedCardId = LockedCardId,
                 RetryRequired = true,
-                Message = $"Wrong answer. Card {selectedCardId} is locked. Replace/reshuffle question and retry this same card.",
+                Message = string.Format("Wrong answer. Card {0} is locked. Replace/reshuffle question and retry this same card.", selectedCardId),
                 BattleResult = CheckBattleResult(),
                 EnemyAttacks = enemyAttacks
             };
@@ -270,7 +281,7 @@ namespace CodeRift.Core
                 CardLocked = false,
                 LockedCardId = null,
                 RetryRequired = false,
-                Message = $"Skipped question. Card {selectedCardId} dealt {selectedCard.Damage} damage.",
+                Message = string.Format("Skipped question. Card {0} dealt {1} damage.", selectedCardId, selectedCard.Damage),
                 BattleResult = CheckBattleResult(),
                 SkipCommand = QuestionSkipCommandType.SkipCurrentQuestion
             };
@@ -297,7 +308,7 @@ namespace CodeRift.Core
                 CardLocked = false,
                 LockedCardId = null,
                 RetryRequired = false,
-                Message = $"Skipped remaining questions. Attack dealt {SkipAllQuestionsDamage} damage.",
+                Message = string.Format("Skipped remaining questions. Attack dealt {0} damage.", SkipAllQuestionsDamage),
                 BattleResult = CheckBattleResult(),
                 SkipCommand = QuestionSkipCommandType.SkipAllQuestions
             };
@@ -308,7 +319,7 @@ namespace CodeRift.Core
             var selectedCard = _attackCards.FirstOrDefault(c => c.Id == selectedCardId);
             if (selectedCard == null)
             {
-                throw new ArgumentOutOfRangeException(nameof(selectedCardId), "Card id must be 1..5.");
+                throw new ArgumentOutOfRangeException("selectedCardId", "Card id must be 1..5.");
             }
 
             return selectedCard;
@@ -325,7 +336,7 @@ namespace CodeRift.Core
                 CardLocked = true,
                 LockedCardId = LockedCardId,
                 RetryRequired = true,
-                Message = $"Card {LockedCardId} is locked. Retry the locked card first.",
+                Message = string.Format("Card {0} is locked. Retry the locked card first.", LockedCardId),
                 BattleResult = CheckBattleResult()
             };
         }
@@ -334,9 +345,9 @@ namespace CodeRift.Core
         /// Enemy attacks only when the player answers incorrectly.
         /// It can chain attacks if the drawn trigger number matches key numbers of the drawn card.
         /// </summary>
-        public IReadOnlyList<EnemyAttackEvent> EnemyAttack()
+        public List<EnemyAttackEvent> EnemyAttack()
         {
-            List<EnemyAttackEvent> attacks = new();
+            List<EnemyAttackEvent> attacks = new List<EnemyAttackEvent>();
 
             bool continueAttacking = true;
             while (continueAttacking && PlayerHP > 0 && EnemyHP > 0)
@@ -379,7 +390,7 @@ namespace CodeRift.Core
             foreach (var card in _attackCards)
             {
                 List<int> pool = Enumerable.Range(1, 10).ToList();
-                HashSet<int> keys = new();
+                HashSet<int> keys = new HashSet<int>();
 
                 for (int i = 0; i < Difficulty.KeyNumbersPerCard; i++)
                 {
@@ -401,7 +412,7 @@ namespace CodeRift.Core
         /// 4) enemy attacks,
         /// 5) locked-card retry behavior.
         /// </summary>
-        public static IReadOnlyList<string> RunSimpleTestSimulation()
+        public static List<string> RunSimpleTestSimulation()
         {
             var fixedKeys = new Dictionary<int, HashSet<int>>
             {
@@ -418,32 +429,32 @@ namespace CodeRift.Core
             var random = new QueueRandomProvider(new[] { 4, 3, 0, 10 });
             var engine = new QuizBattleEngine(enemyLevel: 2, randomProvider: random, fixedEnemyCardKeyNumbers: fixedKeys);
 
-            List<string> log = new()
+            List<string> log = new List<string>()
             {
                 "SIM START -> PlayerHP=100, EnemyHP=100"
             };
 
             // 1 + 2. Player selects card 3 and answers correctly.
             var turn1 = engine.PlayerTurn(selectedCardId: 3, answerCorrect: true);
-            log.Add($"Turn1: Selected card {turn1.SelectedCardId}, correct={turn1.AnswerCorrect}, enemyHP={engine.EnemyHP}");
+            log.Add(string.Format("Turn1: Selected card {0}, correct={1}, enemyHP={2}", turn1.SelectedCardId, turn1.AnswerCorrect, engine.EnemyHP));
 
             // 3 + 4. Player selects card 2 and answers incorrectly, enemy attacks.
             var turn2 = engine.PlayerTurn(selectedCardId: 2, answerCorrect: false);
-            log.Add($"Turn2: Selected card {turn2.SelectedCardId}, correct={turn2.AnswerCorrect}, lockedCard={turn2.LockedCardId}");
+            log.Add(string.Format("Turn2: Selected card {0}, correct={1}, lockedCard={2}", turn2.SelectedCardId, turn2.AnswerCorrect, turn2.LockedCardId));
             foreach (var enemyAttack in turn2.EnemyAttacks)
             {
-                log.Add($"EnemyAttack: card={enemyAttack.CardId}, damage={enemyAttack.Damage}, draw={enemyAttack.TriggerNumber}, chain={enemyAttack.TriggersAnotherAttack}");
+                log.Add(string.Format("EnemyAttack: card={0}, damage={1}, draw={2}, chain={3}", enemyAttack.CardId, enemyAttack.Damage, enemyAttack.TriggerNumber, enemyAttack.TriggersAnotherAttack));
             }
-            log.Add($"After enemy attacks -> PlayerHP={engine.PlayerHP}");
+            log.Add(string.Format("After enemy attacks -> PlayerHP={0}", engine.PlayerHP));
 
             // 5. Player tries different card while locked (blocked), then retries locked card correctly.
             var blockedTurn = engine.PlayerTurn(selectedCardId: 4, answerCorrect: true);
-            log.Add($"LockedCheck: attempt card {blockedTurn.SelectedCardId}, attacked={blockedTurn.PlayerAttacked}, message='{blockedTurn.Message}'");
+            log.Add(string.Format("LockedCheck: attempt card {0}, attacked={1}, message='{2}'", blockedTurn.SelectedCardId, blockedTurn.PlayerAttacked, blockedTurn.Message));
 
             var retryTurn = engine.PlayerTurn(selectedCardId: 2, answerCorrect: true);
-            log.Add($"RetryTurn: selected card {retryTurn.SelectedCardId}, correct={retryTurn.AnswerCorrect}, lockedCard={(engine.LockedCardId?.ToString() ?? "none")}, enemyHP={engine.EnemyHP}");
+            log.Add(string.Format("RetryTurn: selected card {0}, correct={1}, lockedCard={2}, enemyHP={3}", retryTurn.SelectedCardId, retryTurn.AnswerCorrect, engine.LockedCardId != null ? engine.LockedCardId.ToString() : "none", engine.EnemyHP));
 
-            log.Add($"SIM END -> Result={engine.CheckBattleResult()}, PlayerHP={engine.PlayerHP}, EnemyHP={engine.EnemyHP}");
+            log.Add(string.Format("SIM END -> Result={0}, PlayerHP={1}, EnemyHP={2}", engine.CheckBattleResult(), engine.PlayerHP, engine.EnemyHP));
             return log;
         }
     }

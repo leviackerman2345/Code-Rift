@@ -18,10 +18,12 @@ namespace CodeRift.Forms
     /// </summary>
     public static class TerminalMessageBox
     {
-        public static DialogResult Show(IWin32Window? owner, string message, string title, TerminalMessageType type = TerminalMessageType.Info)
+        public static DialogResult Show(IWin32Window owner, string message, string title, TerminalMessageType type = TerminalMessageType.Info)
         {
-            using TerminalMessageDialog dialog = new TerminalMessageDialog(message, title, type);
-            return owner != null ? dialog.ShowDialog(owner) : dialog.ShowDialog();
+            using (TerminalMessageDialog dialog = new TerminalMessageDialog(message, title, type))
+            {
+                return owner != null ? dialog.ShowDialog(owner) : dialog.ShowDialog();
+            }
         }
     }
 
@@ -43,12 +45,21 @@ namespace CodeRift.Forms
                 string.Equals(message, "You win", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(message, "You lose", StringComparison.OrdinalIgnoreCase);
 
-            (_accentColor, _mutedAccentColor) = type switch
+            switch (type)
             {
-                TerminalMessageType.Error => (_terminalRed, _mutedRed),
-                TerminalMessageType.Warning => (_terminalYellow, _mutedYellow),
-                _ => (_terminalGreen, _mutedGreen)
-            };
+                case TerminalMessageType.Error:
+                    _accentColor = _terminalRed;
+                    _mutedAccentColor = _mutedRed;
+                    break;
+                case TerminalMessageType.Warning:
+                    _accentColor = _terminalYellow;
+                    _mutedAccentColor = _mutedYellow;
+                    break;
+                default:
+                    _accentColor = _terminalGreen;
+                    _mutedAccentColor = _mutedGreen;
+                    break;
+            }
 
             Text = title;
             StartPosition = FormStartPosition.CenterParent;
@@ -75,16 +86,23 @@ namespace CodeRift.Forms
                 Font = new Font("Courier New", 13f, FontStyle.Bold),
                 ForeColor = _accentColor,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Text = $"// {title.ToUpperInvariant()} //"
+                Text = string.Format("// {0} //", title.ToUpperInvariant())
             };
 
-            string statusPrefix = type switch
+            string statusPrefix;
+            switch (type)
             {
-                TerminalMessageType.Warning => "[WARN]",
-                TerminalMessageType.Error => "[ERR ]",
-                _ => "[INFO]"
-            };
-            string displayMessage = isBattleOutcomeMessage ? message : $"{statusPrefix} {message}";
+                case TerminalMessageType.Warning:
+                    statusPrefix = "[WARN]";
+                    break;
+                case TerminalMessageType.Error:
+                    statusPrefix = "[ERR ]";
+                    break;
+                default:
+                    statusPrefix = "[INFO]";
+                    break;
+            }
+            string displayMessage = isBattleOutcomeMessage ? message : string.Format("{0} {1}", statusPrefix, message);
 
             Label lblMessage = new Label
             {
@@ -120,20 +138,20 @@ namespace CodeRift.Forms
             btnOk.Click += (s, e) => {
                 AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             };
-            btnOk.MouseEnter += (_, _) =>
+            btnOk.MouseEnter += (s, e) =>
             {
                 AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
                 btnOk.BackColor = _accentColor;
                 btnOk.ForeColor = Color.Black;
             };
-            btnOk.MouseLeave += (_, _) =>
+            btnOk.MouseLeave += (s, e) =>
             {
                 btnOk.BackColor = _darkBackground;
                 btnOk.ForeColor = _accentColor;
             };
 
             bottomBar.Controls.Add(btnOk);
-            bottomBar.Resize += (_, _) =>
+            bottomBar.Resize += (s, e) =>
             {
                 btnOk.Left = (bottomBar.Width - btnOk.Width) / 2;
                 btnOk.Top = 10;
@@ -148,18 +166,20 @@ namespace CodeRift.Forms
             CancelButton = btnOk;
         }
 
-        private void Frame_Paint(object? sender, PaintEventArgs e)
+        private void Frame_Paint(object sender, PaintEventArgs e)
         {
-            if (sender is not Panel panel)
+            Panel panel = sender as Panel;
+            if (panel == null)
             {
                 return;
             }
 
-            using Pen outer = new Pen(_accentColor, 1);
-            using Pen inner = new Pen(_mutedAccentColor, 1);
-
-            e.Graphics.DrawRectangle(outer, 0, 0, panel.Width - 1, panel.Height - 1);
-            e.Graphics.DrawRectangle(inner, 3, 3, panel.Width - 7, panel.Height - 7);
+            using (Pen outer = new Pen(_accentColor, 1))
+            using (Pen inner = new Pen(_mutedAccentColor, 1))
+            {
+                e.Graphics.DrawRectangle(outer, 0, 0, panel.Width - 1, panel.Height - 1);
+                e.Graphics.DrawRectangle(inner, 3, 3, panel.Width - 7, panel.Height - 7);
+            }
         }
     }
 }

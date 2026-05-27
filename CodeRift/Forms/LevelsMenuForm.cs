@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using CodeRift.Core;
 using CodeRift.Managers;
@@ -22,12 +23,12 @@ namespace CodeRift.Forms
         private readonly HashSet<Button> _wiredButtons = new HashSet<Button>();
         private readonly Dictionary<Button, LevelButtonInfo> _buttonInfo = new Dictionary<Button, LevelButtonInfo>();
 
-        private Image? _currentBackground;
+        private Image _currentBackground;
         private readonly Dictionary<string, Image> _preScaledBackgrounds = new Dictionary<string, Image>();
         private int _cachedScaleWidth;
         private int _cachedScaleHeight;
-        private Image? _nextBackground;
-        private Bitmap? _transitionBaseBackground;
+        private Image _nextBackground;
+        private Bitmap _transitionBaseBackground;
         private string _currentBackgroundKey = Constants.IMG_BG_MENU;
         private string _targetBackgroundKey = Constants.IMG_BG_MENU;
         private float _backgroundFade;
@@ -44,11 +45,11 @@ namespace CodeRift.Forms
                 BackgroundKey = backgroundKey;
             }
 
-            public int Level { get; }
+            public int Level { get; private set; }
 
-            public string Text { get; }
+            public string Text { get; private set; }
 
-            public string BackgroundKey { get; }
+            public string BackgroundKey { get; private set; }
         }
 
         public LevelsMenuForm()
@@ -78,7 +79,7 @@ namespace CodeRift.Forms
 
             if (targetWidth <= 0 || targetHeight <= 0)
             {
-                Size screenSize = Screen.PrimaryScreen?.Bounds.Size ?? new Size(1920, 1080);
+                Size screenSize = Screen.PrimaryScreen != null ? Screen.PrimaryScreen.Bounds.Size : new Size(1920, 1080);
                 targetWidth = screenSize.Width;
                 targetHeight = screenSize.Height;
             }
@@ -108,7 +109,7 @@ namespace CodeRift.Forms
 
             foreach (string key in keys)
             {
-                Image? original = ImageManager.Instance.GetImage(key);
+                Image original = ImageManager.Instance.GetImage(key);
                 if (original != null)
                 {
                     Bitmap scaled = new Bitmap(targetWidth, targetHeight);
@@ -125,9 +126,10 @@ namespace CodeRift.Forms
             _currentBackground = GetScaledBackground(_currentBackgroundKey);
         }
 
-        private Image? GetScaledBackground(string key)
+        private Image GetScaledBackground(string key)
         {
-            if (_preScaledBackgrounds.TryGetValue(key, out Image? scaled))
+            Image scaled;
+            if (_preScaledBackgrounds.TryGetValue(key, out scaled))
             {
                 return scaled;
             }
@@ -137,7 +139,7 @@ namespace CodeRift.Forms
         private void EnableDoubleBuffer(Control control)
         {
             var property = typeof(Control).GetProperty("DoubleBuffered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            property?.SetValue(control, true, null);
+            if (property != null) property.SetValue(control, true, null);
 
             foreach (Control child in control.Controls)
             {
@@ -226,11 +228,13 @@ namespace CodeRift.Forms
             btnBack.Click += BackButton_Click;
         }
 
-        private Button? _hoveredLevelButton;
+        private Button _hoveredLevelButton;
 
-        private void LevelButton_MouseEnter(object? sender, EventArgs e)
+        private void LevelButton_MouseEnter(object sender, EventArgs e)
         {
-            if (sender is not Button button || !_buttonInfo.TryGetValue(button, out LevelButtonInfo? info))
+            Button button = sender as Button;
+            LevelButtonInfo info;
+            if (button == null || !_buttonInfo.TryGetValue(button, out info))
             {
                 return;
             }
@@ -239,9 +243,10 @@ namespace CodeRift.Forms
             BeginBackgroundFade(info.BackgroundKey);
         }
 
-        private void LevelButton_MouseLeave(object? sender, EventArgs e)
+        private void LevelButton_MouseLeave(object sender, EventArgs e)
         {
-            if (sender is Button button && _hoveredLevelButton == button)
+            Button button = sender as Button;
+            if (button != null && _hoveredLevelButton == button)
             {
                 _hoveredLevelButton = null;
             }
@@ -255,11 +260,13 @@ namespace CodeRift.Forms
             }));
         }
 
-        private void LevelButton_Click(object? sender, EventArgs e)
+        private void LevelButton_Click(object sender, EventArgs e)
         {
+            Button button = sender as Button;
+            LevelButtonInfo info;
             if (FormTransitionManager.IsTransitioning ||
-                sender is not Button button ||
-                !_buttonInfo.TryGetValue(button, out LevelButtonInfo? info))
+                button == null ||
+                !_buttonInfo.TryGetValue(button, out info))
             {
                 return;
             }
@@ -268,7 +275,7 @@ namespace CodeRift.Forms
             {
                 TerminalMessageBox.Show(
                     this,
-                    $"Complete Level {info.Level - 1} to unlock this level.",
+                    string.Format("Complete Level {0} to unlock this level.", info.Level - 1),
                     "Level Locked",
                     TerminalMessageType.Warning);
                 return;
@@ -285,10 +292,10 @@ namespace CodeRift.Forms
 
         private static void ApplyLockedLevelStyle(Button button, int level)
         {
-            MenuButtonStyle.ApplyLocked(button, $"[LOCKED] LEVEL {level}");
+            MenuButtonStyle.ApplyLocked(button, string.Format("[LOCKED] LEVEL {0}", level));
         }
 
-        private void BackButton_Click(object? sender, EventArgs e)
+        private void BackButton_Click(object sender, EventArgs e)
         {
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             Close();
@@ -310,7 +317,7 @@ namespace CodeRift.Forms
                 {
                     BeginInvoke(new Action(() =>
                     {
-                        if (loader is { IsDisposed: false, Disposing: false })
+                        if (loader != null && !loader.IsDisposed && !loader.Disposing)
                         {
                             loader.Close();
                         }
@@ -343,7 +350,7 @@ namespace CodeRift.Forms
                 return;
             }
 
-            Image? background = GetScaledBackground(backgroundKey) ?? GetScaledBackground(Constants.IMG_BG_MENU);
+            Image background = GetScaledBackground(backgroundKey) ?? GetScaledBackground(Constants.IMG_BG_MENU);
             if (background == null)
             {
                 return;
@@ -351,7 +358,7 @@ namespace CodeRift.Forms
 
             if (_backgroundFadeTimer.Enabled)
             {
-                Bitmap? blendedBackground = CaptureCurrentBackgroundBlend();
+                Bitmap blendedBackground = CaptureCurrentBackgroundBlend();
                 if (blendedBackground != null)
                 {
                     ReplaceTransitionBaseBackground(blendedBackground);
@@ -370,7 +377,7 @@ namespace CodeRift.Forms
             Invalidate();
         }
 
-        private void BackgroundFadeTimer_Tick(object? sender, EventArgs e)
+        private void BackgroundFadeTimer_Tick(object sender, EventArgs e)
         {
             _backgroundFade += BackgroundFadeStep;
             if (_backgroundFade >= 1f)
@@ -406,7 +413,7 @@ namespace CodeRift.Forms
             return false;
         }
 
-        private Bitmap? CaptureCurrentBackgroundBlend()
+        private Bitmap CaptureCurrentBackgroundBlend()
         {
             if (ClientSize.Width <= 0 || ClientSize.Height <= 0 || _currentBackground == null)
             {
@@ -414,19 +421,21 @@ namespace CodeRift.Forms
             }
 
             Bitmap blended = new Bitmap(ClientSize.Width, ClientSize.Height);
-            using Graphics graphics = Graphics.FromImage(blended);
-            graphics.Clear(Color.FromArgb(13, 13, 13));
-            DrawBackgroundImage(graphics, _currentBackground, 1f);
-
-            if (_nextBackground != null && _backgroundFade > 0f)
+            using (Graphics graphics = Graphics.FromImage(blended))
             {
-                DrawBackgroundImage(graphics, _nextBackground, _backgroundFade);
+                graphics.Clear(Color.FromArgb(13, 13, 13));
+                DrawBackgroundImage(graphics, _currentBackground, 1f);
+
+                if (_nextBackground != null && _backgroundFade > 0f)
+                {
+                    DrawBackgroundImage(graphics, _nextBackground, _backgroundFade);
+                }
             }
 
             return blended;
         }
 
-        private void ReplaceTransitionBaseBackground(Bitmap? background)
+        private void ReplaceTransitionBaseBackground(Bitmap background)
         {
             if (_transitionBaseBackground != null && !ReferenceEquals(_transitionBaseBackground, background))
             {
@@ -452,7 +461,7 @@ namespace CodeRift.Forms
         {
             if (!FormTransitionManager.ShowChild(this, levelForm, () =>
             {
-                if (Tag?.ToString() == "EXIT_TO_MENU")
+                if (Tag != null && Tag.ToString() == "EXIT_TO_MENU")
                 {
                     Close();
                     return false;
@@ -510,30 +519,34 @@ namespace CodeRift.Forms
             int shadeAlpha = (int)Math.Round(_backgroundFadeTimer.Enabled ? GetCurrentInterpolatedShadeAlpha() : _currentShadeAlpha);
             if (shadeAlpha > 0)
             {
-                using SolidBrush brush = new SolidBrush(Color.FromArgb(Math.Min(255, shadeAlpha), 0, 0, 0));
-                e.Graphics.FillRectangle(brush, ClientRectangle);
+                using (SolidBrush brush = new SolidBrush(Color.FromArgb(Math.Min(255, shadeAlpha), 0, 0, 0)))
+                {
+                    e.Graphics.FillRectangle(brush, ClientRectangle);
+                }
             }
         }
 
-        private void DrawBackgroundImage(Graphics graphics, Image? image, float alpha)
+        private void DrawBackgroundImage(Graphics graphics, Image image, float alpha)
         {
             if (image == null)
             {
                 return;
             }
 
-            using ImageAttributes attributes = new ImageAttributes();
-            ColorMatrix matrix = new ColorMatrix { Matrix33 = Math.Max(0f, Math.Min(1f, alpha)) };
-            attributes.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
-            graphics.DrawImage(
-                image,
-                ClientRectangle,
-                0,
-                0,
-                image.Width,
-                image.Height,
-                GraphicsUnit.Pixel,
-                attributes);
+            using (ImageAttributes attributes = new ImageAttributes())
+            {
+                ColorMatrix matrix = new ColorMatrix { Matrix33 = Math.Max(0f, Math.Min(1f, alpha)) };
+                attributes.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
+                graphics.DrawImage(
+                    image,
+                    ClientRectangle,
+                    0,
+                    0,
+                    image.Width,
+                    image.Height,
+                    GraphicsUnit.Pixel,
+                    attributes);
+            }
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)

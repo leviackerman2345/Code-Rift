@@ -1,5 +1,7 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
+using Newtonsoft.Json;
 
 namespace CodeRift.Managers
 {
@@ -7,15 +9,16 @@ namespace CodeRift.Managers
     public sealed class LanguageManager
     {
         private static readonly LanguageManager _instance = new LanguageManager();
-        private readonly Dictionary<string, string> _strings = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, string> _strings = new Dictionary<string, string>(StringComparer.Ordinal);
 
         private LanguageManager()
         {
+            CurrentLanguage = string.Empty;
         }
 
-        public static LanguageManager Instance => _instance;
+        public static LanguageManager Instance { get { return _instance; } }
 
-        public string CurrentLanguage { get; private set; } = string.Empty;
+        public string CurrentLanguage { get; private set; }
 
         public void Load(string languageCode)
         {
@@ -27,7 +30,7 @@ namespace CodeRift.Managers
                 return;
             }
 
-            string path = Path.Combine(AppContext.BaseDirectory, "Utils", $"{languageCode}.json");
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Utils", string.Format("{0}.json", languageCode));
             if (!File.Exists(path))
             {
                 return;
@@ -36,7 +39,7 @@ namespace CodeRift.Managers
             try
             {
                 string json = File.ReadAllText(path);
-                Dictionary<string, string>? values = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                Dictionary<string, string> values = JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
                 if (values == null)
                 {
                     return;
@@ -47,7 +50,7 @@ namespace CodeRift.Managers
                     _strings[pair.Key] = pair.Value;
                 }
             }
-            catch (JsonException)
+            catch (JsonSerializationException)
             {
             }
             catch (IOException)
@@ -58,7 +61,10 @@ namespace CodeRift.Managers
         public string Get(string key)
         {
             // Missing keys are surfaced intentionally for easier UI text debugging.
-            return _strings.TryGetValue(key, out string? value) ? value : $"[{key}]";
+            string value;
+            if (_strings.TryGetValue(key, out value))
+                return value;
+            return string.Format("[{0}]", key);
         }
 
         public void Switch(string languageCode)

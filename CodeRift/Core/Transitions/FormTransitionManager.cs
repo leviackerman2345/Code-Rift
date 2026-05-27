@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -11,9 +12,9 @@ namespace CodeRift.Core
         private static bool _isTransitioning;
         private static readonly Dictionary<Form, CancellationTokenSource> ActiveFades = new Dictionary<Form, CancellationTokenSource>();
 
-        public static bool IsTransitioning => _isTransitioning;
+        public static bool IsTransitioning { get { return _isTransitioning; } }
 
-        public static bool ShowChild(Form owner, Form child, Func<bool>? onChildClosed = null)
+        public static bool ShowChild(Form owner, Form child, Func<bool> onChildClosed = null)
         {
             if (!CanStartTransition(owner, child))
             {
@@ -25,7 +26,7 @@ namespace CodeRift.Core
             Rectangle ownerBounds = owner.Bounds;
             PrepareChildForm(owner, child, ownerState, ownerBounds);
 
-            child.Shown += (_, _) =>
+            child.Shown += (s, e) =>
             {
                 // Force one draw pass before hiding owner to avoid desktop/IDE flash-through.
                 child.BeginInvoke(new Action(() =>
@@ -35,9 +36,9 @@ namespace CodeRift.Core
                 }));
             };
 
-            child.FormClosed += (_, _) =>
+            child.FormClosed += (s, e) =>
             {
-                bool shouldShowOwner = onChildClosed?.Invoke() ?? true;
+                bool shouldShowOwner = onChildClosed != null ? onChildClosed.Invoke() : true;
                 if (!shouldShowOwner || owner.IsDisposed)
                 {
                     CancelActiveFade(child);
@@ -95,7 +96,7 @@ namespace CodeRift.Core
             {
                 child.Update();
                 child.Activate();
-                _ = FadeInFormAsync(child, () =>
+                FadeInFormAsync(child, () =>
                 {
                     EndTransition(owner);
                 });
@@ -145,7 +146,8 @@ namespace CodeRift.Core
         {
             lock (ActiveFades)
             {
-                if (ActiveFades.TryGetValue(form, out var cts))
+                CancellationTokenSource cts;
+                if (ActiveFades.TryGetValue(form, out cts))
                 {
                     try
                     {
@@ -161,18 +163,19 @@ namespace CodeRift.Core
             }
         }
 
-        private static async Task FadeInFormAsync(Form form, Action? onComplete = null)
+        private static async Task FadeInFormAsync(Form form, Action onComplete = null)
         {
             if (form.IsDisposed)
             {
-                onComplete?.Invoke();
+                if (onComplete != null) onComplete.Invoke();
                 return;
             }
 
             CancellationTokenSource cts;
             lock (ActiveFades)
             {
-                if (ActiveFades.TryGetValue(form, out var existingCts))
+                CancellationTokenSource existingCts;
+                if (ActiveFades.TryGetValue(form, out existingCts))
                 {
                     try
                     {
@@ -217,13 +220,14 @@ namespace CodeRift.Core
             {
                 lock (ActiveFades)
                 {
-                    if (ActiveFades.TryGetValue(form, out var currentCts) && currentCts == cts)
+                    CancellationTokenSource currentCts;
+                    if (ActiveFades.TryGetValue(form, out currentCts) && currentCts == cts)
                     {
                         ActiveFades.Remove(form);
                     }
                 }
                 cts.Dispose();
-                onComplete?.Invoke();
+                if (onComplete != null) onComplete.Invoke();
             }
         }
     }

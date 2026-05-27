@@ -1,14 +1,17 @@
-using CodeRift.Utils;
+using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
+using CodeRift.Utils;
 
 namespace CodeRift.Managers
 {
     public sealed class ImageManager
     {
         private static readonly ImageManager _instance = new ImageManager();
-        private readonly Dictionary<string, Image> _images = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, string> _backgrounds = new(StringComparer.OrdinalIgnoreCase)
+        private readonly Dictionary<string, Image> _images = new Dictionary<string, Image>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _backgrounds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { Constants.IMG_BG_MENU, @"Assets\Images\backgrounds\main_menu.png" },
             { Constants.IMG_BG_LEVEL1, @"Assets\Images\backgrounds\level_background\level_1.png" },
@@ -17,25 +20,25 @@ namespace CodeRift.Managers
             { Constants.IMG_BG_LEVEL4, @"Assets\Images\backgrounds\level_background\level_4.png" },
             { Constants.IMG_BG_LEVEL5, @"Assets\Images\backgrounds\level_background\level_5.png" }
         };
-        private readonly Dictionary<string, string> _playerSprites = new(StringComparer.OrdinalIgnoreCase)
+        private readonly Dictionary<string, string> _playerSprites = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { Constants.IMG_PLAYER_IDLE, @"Assets\Images\player\idle.png" },
             { Constants.IMG_PLAYER_RUN, @"Assets\Images\player\run.png" },
             { Constants.IMG_PLAYER_JUMP, @"Assets\Images\player\jump.png" },
             { Constants.IMG_PLAYER_ATTACK, @"Assets\Images\player\attack.png" }
         };
-        private readonly Dictionary<string, string> _enemySprites = new(StringComparer.OrdinalIgnoreCase)
+        private readonly Dictionary<string, string> _enemySprites = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { Constants.IMG_ENEMY_BASIC, @"Assets\Images\enemies\basic.png" },
             { Constants.IMG_ENEMY_BOSS, @"Assets\Images\enemies\boss.png" }
         };
-        private readonly Dictionary<string, string> _uiSprites = new(StringComparer.OrdinalIgnoreCase)
+        private readonly Dictionary<string, string> _uiSprites = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { Constants.IMG_UI_BUTTON, @"Assets\Images\ui\button_hover.png" },
             { Constants.IMG_UI_HEALTHBAR, @"Assets\Images\ui\healthbar.png" },
             { Constants.IMG_UI_DIALOGUE, @"Assets\Images\ui\dialogue_box.png" }
         };
-        private readonly Dictionary<string, string> _cgImages = new(StringComparer.OrdinalIgnoreCase)
+        private readonly Dictionary<string, string> _cgImages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { Constants.CG_01, @"Assets\Images\prologue\scene_1.jpeg" },
             { Constants.CG_02, @"Assets\Images\prologue\scene_2.jpeg" },
@@ -67,23 +70,23 @@ namespace CodeRift.Managers
         {
         }
 
-        public static ImageManager Instance => _instance;
+        public static ImageManager Instance { get { return _instance; } }
 
-        public IReadOnlyDictionary<string, string> Backgrounds => _backgrounds;
+        public Dictionary<string, string> Backgrounds { get { return _backgrounds; } }
 
-        public IReadOnlyDictionary<string, string> PlayerSprites => _playerSprites;
+        public Dictionary<string, string> PlayerSprites { get { return _playerSprites; } }
 
-        public IReadOnlyDictionary<string, string> EnemySprites => _enemySprites;
+        public Dictionary<string, string> EnemySprites { get { return _enemySprites; } }
 
-        public IReadOnlyDictionary<string, string> UISprites => _uiSprites;
+        public Dictionary<string, string> UISprites { get { return _uiSprites; } }
 
-        public IReadOnlyDictionary<string, string> CGImages => _cgImages;
+        public Dictionary<string, string> CGImages { get { return _cgImages; } }
 
-        public IEnumerable<KeyValuePair<string, string>> AllImages => Backgrounds
+        public IEnumerable<KeyValuePair<string, string>> AllImages { get { return Backgrounds
             .Concat(PlayerSprites)
             .Concat(EnemySprites)
             .Concat(UISprites)
-            .Concat(CGImages);
+            .Concat(CGImages); } }
 
         public void LoadImage(string key, string path)
         {
@@ -99,26 +102,35 @@ namespace CodeRift.Managers
             }
 
             byte[] bytes = File.ReadAllBytes(resolvedPath);
-            using MemoryStream stream = new MemoryStream(bytes, writable: false);
-            using Image loadedImage = Image.FromStream(stream);
-            Image image = new Bitmap(loadedImage);
-
-            if (_images.TryGetValue(key, out Image? existingImage))
+            using (MemoryStream stream = new MemoryStream(bytes, writable: false))
             {
-                existingImage.Dispose();
+                using (Image loadedImage = Image.FromStream(stream))
+                {
+                    Image image = new Bitmap(loadedImage);
+
+                    Image existingImage;
+                    if (_images.TryGetValue(key, out existingImage))
+                    {
+                        existingImage.Dispose();
+                    }
+
+                    _images[key] = image;
+                }
             }
-
-            _images[key] = image;
         }
 
-        public Image? GetImage(string key)
+        public Image GetImage(string key)
         {
-            return _images.TryGetValue(key, out Image? image) ? image : null;
+            Image image;
+            if (_images.TryGetValue(key, out image))
+                return image;
+            return null;
         }
 
-        public Image? GetOrLoadImage(string key, string path)
+        public Image GetOrLoadImage(string key, string path)
         {
-            if (_images.TryGetValue(key, out Image? image))
+            Image image;
+            if (_images.TryGetValue(key, out image))
             {
                 return image;
             }
@@ -140,7 +152,7 @@ namespace CodeRift.Managers
         private static string ResolvePath(string path)
         {
             string normalizedPath = path.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
-            return Path.IsPathRooted(normalizedPath) ? normalizedPath : Path.Combine(AppContext.BaseDirectory, normalizedPath);
+            return Path.IsPathRooted(normalizedPath) ? normalizedPath : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, normalizedPath);
         }
     }
 }

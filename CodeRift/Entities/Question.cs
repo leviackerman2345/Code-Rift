@@ -17,27 +17,35 @@ namespace CodeRift.Entities
     /// </summary>
     public class Question
     {
+        public Question()
+        {
+            LevelTitle = string.Empty;
+            ProblemStatement = string.Empty;
+            CorrectAnswer = string.Empty;
+            Hint = string.Empty;
+        }
+
         // Which level this question belongs to (1-5)
         public int Level { get; set; }
 
         // The title of the level (e.g. LOOPS, METHODS, etc.)
-        public string LevelTitle { get; set; } = string.Empty;
+        public string LevelTitle { get; set; }
 
         // The type of interaction required (MC or Code)
         public QuestionType Type { get; set; }
 
         // The text of the problem or task
-        public string ProblemStatement { get; set; } = string.Empty;
+        public string ProblemStatement { get; set; }
 
         // For Multiple Choice: List of options
         // For Code Input: This can be null
-        public List<string>? Options { get; set; }
+        public List<string> Options { get; set; }
 
         // The exact correct string (for Code) or the correct option text (for MC)
-        public string CorrectAnswer { get; set; } = string.Empty;
+        public string CorrectAnswer { get; set; }
 
         // An optional hint to display if the player is stuck
-        public string Hint { get; set; } = string.Empty;
+        public string Hint { get; set; }
     }
 
     /// <summary>
@@ -45,6 +53,11 @@ namespace CodeRift.Entities
     /// </summary>
     public class QuestionBank
     {
-        public List<Question> Questions { get; set; } = new List<Question>();
+        public QuestionBank()
+        {
+            Questions = new List<Question>();
+        }
+
+        public List<Question> Questions { get; set; }
     }
 }

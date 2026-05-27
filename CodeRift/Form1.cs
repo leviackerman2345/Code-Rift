@@ -14,8 +14,8 @@ namespace CodeRift
     public partial class Form1 : Form
     {
         // Visual state for smooth progress/fade animations.
-        private Image? _backgroundImage;
-        private Image? _titleImage;
+        private Image _backgroundImage;
+        private Image _titleImage;
         private readonly System.Windows.Forms.Timer _animationTimer = new System.Windows.Forms.Timer();
         private readonly System.Diagnostics.Stopwatch _splashTimer = new System.Diagnostics.Stopwatch();
         private double _displayPercent;
@@ -69,12 +69,12 @@ namespace CodeRift
 
         private void ApplySplashArtwork()
         {
-            Image? splashBackground = ImageManager.Instance.GetImage(AssetBootstrapper.SplashBackgroundKey);
-            Image? splashTitle = ImageManager.Instance.GetImage(AssetBootstrapper.SplashTitleKey);
+            Image splashBackground = ImageManager.Instance.GetImage(AssetBootstrapper.SplashBackgroundKey);
+            Image splashTitle = ImageManager.Instance.GetImage(AssetBootstrapper.SplashTitleKey);
 
             if (splashBackground != null)
             {
-                _backgroundImage?.Dispose();
+                if (_backgroundImage != null) _backgroundImage.Dispose();
                 _backgroundImage = new Bitmap(splashBackground);
                 BackgroundImage = _backgroundImage;
                 BackgroundImageLayout = ImageLayout.Stretch;
@@ -82,7 +82,7 @@ namespace CodeRift
 
             if (splashTitle != null)
             {
-                _titleImage?.Dispose();
+                if (_titleImage != null) _titleImage.Dispose();
                 _titleImage = new Bitmap(splashTitle);
                 titleBox.Image = _titleImage;
             }
@@ -101,7 +101,7 @@ namespace CodeRift
             logLabel.Refresh();
         }
 
-        private void AnimationTimer_Tick(object? sender, EventArgs e)
+        private void AnimationTimer_Tick(object sender, EventArgs e)
         {
             // Handles fade-in/fade-out and smooth progress interpolation per frame.
             if (Opacity < 1.0 && !_fadeOutRequested)
@@ -131,7 +131,7 @@ namespace CodeRift
             }
 
             int shownPercent = (int)Math.Round(_displayPercent);
-            percentLabel.Text = $"{shownPercent}%";
+            percentLabel.Text = string.Format("{0}%", shownPercent);
             progressFill.Width = (int)Math.Round(396f * _displayPercent / 100f);
         }
 
@@ -152,8 +152,8 @@ namespace CodeRift
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             _animationTimer.Stop();
-            _backgroundImage?.Dispose();
-            _titleImage?.Dispose();
+            if (_backgroundImage != null) _backgroundImage.Dispose();
+            if (_titleImage != null) _titleImage.Dispose();
             base.OnFormClosed(e);
         }
 

@@ -21,7 +21,7 @@ namespace CodeRift.Forms
         private int _currentStep;
         private int _fadeAlpha;
         private int _fadeStep;
-        private Action? _pendingSceneUpdate;
+        private Action _pendingSceneUpdate;
         private bool _isSceneTransitioning;
         private string _fullText = string.Empty;
         private int _typeIndex;
@@ -126,7 +126,7 @@ namespace CodeRift.Forms
             }
 
             StoryStep step = _config.Steps[_currentStep];
-            string? previousImageKey = _currentStep > 0 ? _config.Steps[_currentStep - 1].ImageKey : null;
+            string previousImageKey = _currentStep > 0 ? _config.Steps[_currentStep - 1].ImageKey : null;
 
             if (step.ImageKey != previousImageKey)
             {
@@ -158,14 +158,14 @@ namespace CodeRift.Forms
             _sceneFadeTimer.Start();
         }
 
-        private void SceneFadeTimer_Tick(object? sender, EventArgs e)
+        private void SceneFadeTimer_Tick(object sender, EventArgs e)
         {
             _fadeAlpha += _fadeStep;
             if (_fadeAlpha >= 255)
             {
                 _fadeAlpha = 255;
                 _fadeStep = -15;
-                _pendingSceneUpdate?.Invoke();
+                if (_pendingSceneUpdate != null) _pendingSceneUpdate.Invoke();
                 _pendingSceneUpdate = null;
             }
             else if (_fadeAlpha <= 0)
@@ -179,7 +179,7 @@ namespace CodeRift.Forms
             Invalidate();
         }
 
-        private void TypeTimer_Tick(object? sender, EventArgs e)
+        private void TypeTimer_Tick(object sender, EventArgs e)
         {
             if (_typeIndex < _fullText.Length)
             {
@@ -215,29 +215,29 @@ namespace CodeRift.Forms
             _typeTimer.Start();
         }
 
-        private void Form_Click(object? sender, EventArgs e)
+        private void Form_Click(object sender, EventArgs e)
         {
             AdvanceDialogue();
         }
 
-        private void DialogueElement_Click(object? sender, EventArgs e)
+        private void DialogueElement_Click(object sender, EventArgs e)
         {
             AdvanceDialogue();
         }
 
-        private void BackButton_Click(object? sender, EventArgs e)
+        private void BackButton_Click(object sender, EventArgs e)
         {
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             Close();
         }
 
-        private void SkipButton_Click(object? sender, EventArgs e)
+        private void SkipButton_Click(object sender, EventArgs e)
         {
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             FinishStory();
         }
 
-        private void FinishButton_Click(object? sender, EventArgs e)
+        private void FinishButton_Click(object sender, EventArgs e)
         {
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
             FinishStory();
@@ -314,8 +314,10 @@ namespace CodeRift.Forms
             base.OnPaintBackground(e);
             if (_fadeAlpha > 0)
             {
-                using SolidBrush brush = new SolidBrush(Color.FromArgb(_fadeAlpha, 0, 0, 0));
-                e.Graphics.FillRectangle(brush, ClientRectangle);
+                using (SolidBrush brush = new SolidBrush(Color.FromArgb(_fadeAlpha, 0, 0, 0)))
+                {
+                    e.Graphics.FillRectangle(brush, ClientRectangle);
+                }
             }
         }
 

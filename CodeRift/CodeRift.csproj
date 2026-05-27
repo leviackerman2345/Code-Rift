@@ -1,48 +1,105 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>CodeRift</RootNamespace>
+    <AssemblyName>CodeRift</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
   </PropertyGroup>
-
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <Prefer32Bit>true</Prefer32Bit>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <Prefer32Bit>true</Prefer32Bit>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
   <ItemGroup>
-    <Folder Include="Assets\Audio\sfx\" />
-    <Folder Include="Assets\Audio\music\" />
-    <Folder Include="Core\" />
-    <Folder Include="Core\Battle\" />
-    <Folder Include="Core\Questions\" />
-    <Folder Include="Core\Transitions\" />
-    <Folder Include="Entities\" />
-    <Folder Include="Managers\" />
-    <Folder Include="Managers\Progress\" />
-    <Folder Include="Managers\Questions\" />
-    <Folder Include="Utils\" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net40\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Threading.Tasks">
+      <HintPath>..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Threading.Tasks.Extensions">
+      <HintPath>..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Threading.Tasks.Extensions.Desktop">
+      <HintPath>..\packages\Microsoft.Bcl.Async.1.0.168\lib\net40\Microsoft.Threading.Tasks.Extensions.Desktop.dll</HintPath>
+    </Reference>
   </ItemGroup>
-
   <ItemGroup>
-    <Compile Update="Forms\BattleArenaForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="Forms\BattleArenaForm.Designer.cs">
-      <DependentUpon>BattleArenaForm.cs</DependentUpon>
-    </Compile>
-    <EmbeddedResource Update="Forms\BattleArenaForm.resx">
-      <DependentUpon>BattleArenaForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <Compile Update="Forms\BattleArenaQuestionForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Update="Forms\BattleArenaQuestionForm.Designer.cs">
-      <DependentUpon>BattleArenaQuestionForm.cs</DependentUpon>
-    </Compile>
-    <EmbeddedResource Update="Forms\BattleArenaQuestionForm.resx">
-      <DependentUpon>BattleArenaQuestionForm.cs</DependentUpon>
-    </EmbeddedResource>
+    <Compile Include="Form1.cs" />
+    <Compile Include="Form1.Designer.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Core\AssetBootstrapper.cs" />
+    <Compile Include="Core\AssetLoadProgress.cs" />
+    <Compile Include="Core\Battle\BattleActorController.cs" />
+    <Compile Include="Core\Battle\EnemyActorController.cs" />
+    <Compile Include="Core\Battle\LevelConfig.cs" />
+    <Compile Include="Core\Battle\PlayerActorController.cs" />
+    <Compile Include="Core\Battle\QuizBattleEngine.cs" />
+    <Compile Include="Core\Questions\QuestionSkipCommand.cs" />
+    <Compile Include="Core\Transitions\FormTransitionManager.cs" />
+    <Compile Include="Entities\Question.cs" />
+    <Compile Include="Forms\BattleArenaForm.cs" />
+    <Compile Include="Forms\BattleArenaForm.Designer.cs" />
+    <Compile Include="Forms\BattleArenaQuestionForm.cs" />
+    <Compile Include="Forms\BattleArenaQuestionForm.Designer.cs" />
+    <Compile Include="Forms\BattleLoaderForm.cs" />
+    <Compile Include="Forms\BattleLoaderForm.Designer.cs" />
+    <Compile Include="Forms\credits.cs" />
+    <Compile Include="Forms\credits.Designer.cs" />
+    <Compile Include="Forms\FinalVentForm.cs" />
+    <Compile Include="Forms\LevelsMenuForm.cs" />
+    <Compile Include="Forms\LevelsMenuForm.Designer.cs" />
+    <Compile Include="Forms\menu.cs" />
+    <Compile Include="Forms\menu.Designer.cs" />
+    <Compile Include="Forms\settings.cs" />
+    <Compile Include="Forms\settings.Designer.cs" />
+    <Compile Include="Forms\StoryConfig.cs" />
+    <Compile Include="Forms\StoryForm.cs" />
+    <Compile Include="Forms\StoryScripts.cs" />
+    <Compile Include="Forms\TerminalMessageBox.cs" />
+    <Compile Include="Managers\AudioManager.cs" />
+    <Compile Include="Managers\ImageManager.cs" />
+    <Compile Include="Managers\LanguageManager.cs" />
+    <Compile Include="Managers\Progress\ProgressData.cs" />
+    <Compile Include="Managers\Progress\ProgressManager.cs" />
+    <Compile Include="Managers\Questions\QuestionManager.cs" />
+    <Compile Include="Utils\AssetPathHelper.cs" />
+    <Compile Include="Utils\Constants.cs" />
+    <Compile Include="Utils\MenuButtonStyle.cs" />
   </ItemGroup>
-
   <ItemGroup>
     <Content Include="Assets\**\*.*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -51,5 +108,8 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

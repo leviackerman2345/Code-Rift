@@ -21,12 +21,13 @@ namespace CodeRift.Forms
     {
         [Browsable(false)]
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-        public Color TintColor { get; set; } = Color.Transparent;
+        public Color TintColor { get; set; }
 
         public ScreenTintOverlay()
         {
+            TintColor = Color.Transparent;
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
-            
+
             Enabled = false;
         }
 
@@ -37,8 +38,10 @@ namespace CodeRift.Forms
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            using Brush brush = new SolidBrush(TintColor);
-            e.Graphics.FillRectangle(brush, ClientRectangle);
+            using (Brush brush = new SolidBrush(TintColor))
+            {
+                e.Graphics.FillRectangle(brush, ClientRectangle);
+            }
         }
     }
 
@@ -48,12 +51,12 @@ namespace CodeRift.Forms
         private const int IdleFrameCount = 4;
         private const int AnimationTimerIntervalMs = 80;
         private const int ImpactFramesRemaining = 3;
-        private const int GroundDropOffset = 64;
-        private const int GroundVisiblePadding = 0;
+        private const int GroundBottomPadding = 20;
+        private const int PlayerScalePercent = 105;
         private const string DefaultEnemyAssetFolder = "enemy1";
         private const string DefaultEnemyPortraitFileName = "enemy_level_1.jpeg";
-        private static readonly Dictionary<string, Image> BattleAssetCache = new(StringComparer.OrdinalIgnoreCase);
-        private static readonly object BattleAssetCacheLock = new();
+        private static readonly Dictionary<string, Image> BattleAssetCache = new Dictionary<string, Image>(StringComparer.OrdinalIgnoreCase);
+        private static readonly object BattleAssetCacheLock = new object();
         private static readonly int[] NeighborOffsetX = { 1, -1, 0, 0 };
         private static readonly int[] NeighborOffsetY = { 0, 0, 1, -1 };
 
@@ -72,15 +75,15 @@ namespace CodeRift.Forms
         private enum BattleState { IntroRunning, IdleLoop, PlayerAttacking, EnemyHurting, EnemyAttacking, PlayerHurting, PlayerReturning, EnemyReturning }
         private BattleState _currentState = BattleState.IntroRunning;
 
-        private readonly PlayerActorController _playerActor = new(AttackFrameCount, IdleFrameCount);
-        private readonly EnemyActorController _enemyActor = new(AttackFrameCount, IdleFrameCount);
+        private readonly PlayerActorController _playerActor = new PlayerActorController(AttackFrameCount, IdleFrameCount);
+        private readonly EnemyActorController _enemyActor = new EnemyActorController(AttackFrameCount, IdleFrameCount);
 
         private int _currentFrame = 0;
         private int _animFrameIdx = 0;
         private int _stateTickCounter = 0;
         private double _idleTimeElapsedSeconds = 0.0;
         private int _idleTimeoutFlashFrames = 0;
-        private readonly System.Windows.Forms.Timer _animTimer = new();
+        private readonly System.Windows.Forms.Timer _animTimer = new System.Windows.Forms.Timer();
         private bool _isAnimTimerWired;
 
         private bool _checkBattleAfterAnimation;
@@ -88,24 +91,24 @@ namespace CodeRift.Forms
         private int _remainingEnemyRetaliationHits;
         private bool _pendingIncorrectAnswerPopup;
         private bool _enemyNeedsReturnAfterPlayerAttack;
-        private readonly PictureBox _spriteCanvas = new();
-        private readonly ScreenTintOverlay _backgroundTintLayer = new();
-        private Bitmap? _spriteBuffer;
-        private Graphics? _spriteBufferGraphics;
+        private readonly PictureBox _spriteCanvas = new PictureBox();
+        private readonly ScreenTintOverlay _backgroundTintLayer = new ScreenTintOverlay();
+        private Bitmap _spriteBuffer;
+        private Graphics _spriteBufferGraphics;
         private Color _lastBackgroundTint = Color.Transparent;
-        private readonly Random _vfxRandom = new();
+        private readonly Random _vfxRandom = new Random();
         private readonly Task _animationLoadTask;
 
         // Tracks in-flight prewarm tasks keyed by level so hover-triggered loads
         // are never duplicated when the user hovers the same button twice.
-        private static readonly Dictionary<int, Task> PrewarmTasks = new();
-        private static readonly object PrewarmLock = new();
+        private static readonly Dictionary<int, Task> PrewarmTasks = new Dictionary<int, Task>();
+        private static readonly object PrewarmLock = new object();
 
         // Card mapping for turn selection and lock validation.
-        private readonly Dictionary<PictureBox, int> _cardIdByPicture = new();
-        private readonly Dictionary<int, PictureBox> _pictureByCardId = new();
-        private readonly HashSet<int> _usedPlayerCards = new();
-        private readonly HashSet<PictureBox> _wiredPlayerCardBoxes = new();
+        private readonly Dictionary<PictureBox, int> _cardIdByPicture = new Dictionary<PictureBox, int>();
+        private readonly Dictionary<int, PictureBox> _pictureByCardId = new Dictionary<int, PictureBox>();
+        private readonly HashSet<int> _usedPlayerCards = new HashSet<int>();
+        private readonly HashSet<PictureBox> _wiredPlayerCardBoxes = new HashSet<PictureBox>();
 
         // Core battle logic engine.
         private readonly QuizBattleEngine _battleEngine;
@@ -139,7 +142,7 @@ namespace CodeRift.Forms
             // Always run LoadAnimationAssets to populate _playerActor / _enemyActor frame arrays.
             // If PrewarmAsync already ran for this level, BattleAssetCache is warm, so GetCachedImage
             // returns cached clones instantly — making this task complete in near-zero time.
-            _animationLoadTask = Task.Run(LoadAnimationAssets);
+            _animationLoadTask = Task.Run(new Action(LoadAnimationAssets));
 
             PrepareBattleScreen();
         }
@@ -147,7 +150,7 @@ namespace CodeRift.Forms
         private void EnableDoubleBuffer(Control control)
         {
             var property = typeof(Control).GetProperty("DoubleBuffered", BindingFlags.Instance | BindingFlags.NonPublic);
-            property?.SetValue(control, true, null);
+            if (property != null) property.SetValue(control, true, null);
 
             foreach (Control child in control.Controls)
             {
@@ -209,7 +212,8 @@ namespace CodeRift.Forms
 
             lock (PrewarmLock)
             {
-                if (PrewarmTasks.TryGetValue(level, out Task? existingTask))
+                Task existingTask;
+                if (PrewarmTasks.TryGetValue(level, out existingTask))
                 {
                     loadTask = existingTask;
                     isExisting = true;
@@ -231,44 +235,44 @@ namespace CodeRift.Forms
                             double step = 100.0 / 8.0;
                             double currentProgress = 0;
 
-                            progressReport?.Invoke("DECRYPTING PLAYER RUN SEQUENCES...", currentProgress);
+                            if (progressReport != null) progressReport.Invoke("DECRYPTING PLAYER RUN SEQUENCES...", currentProgress);
                             PrewarmFrameSequence(Path.Combine(playerPath, "run"), "player_run", AttackFrameCount, applyTransparency: true);
                             currentProgress += step;
 
-                            progressReport?.Invoke("OPTIMIZING PLAYER ATTACK VECTORS...", currentProgress);
+                            if (progressReport != null) progressReport.Invoke("OPTIMIZING PLAYER ATTACK VECTORS...", currentProgress);
                             PrewarmFrameSequence(Path.Combine(playerPath, "attack"), "player_attack", AttackFrameCount, applyTransparency: true);
                             currentProgress += step;
 
-                            progressReport?.Invoke("CACHING PLAYER REACTION FRAMES...", currentProgress);
+                            if (progressReport != null) progressReport.Invoke("CACHING PLAYER REACTION FRAMES...", currentProgress);
                             PrewarmFrameSequence(Path.Combine(playerPath, "hurt"), "player_hurt", AttackFrameCount, applyTransparency: false);
                             currentProgress += step;
 
-                            progressReport?.Invoke("STABILIZING PLAYER COGNITIVE STATE...", currentProgress);
+                            if (progressReport != null) progressReport.Invoke("STABILIZING PLAYER COGNITIVE STATE...", currentProgress);
                             PrewarmFrameSequence(Path.Combine(playerPath, "ide"), "player_ide", IdleFrameCount, applyTransparency: false);
                             currentProgress += step;
 
-                            progressReport?.Invoke($"INITIALIZING {config.EnemyName.ToUpperInvariant()} INTERFACES...", currentProgress);
-                            PrewarmFrameSequence(Path.Combine(enemyPath, "run"), $"{enemyFolder}_run", AttackFrameCount, applyTransparency: false);
+                            if (progressReport != null) progressReport.Invoke(string.Format("INITIALIZING {0} INTERFACES...", config.EnemyName.ToUpperInvariant()), currentProgress);
+                            PrewarmFrameSequence(Path.Combine(enemyPath, "run"), string.Format("{0}_run", enemyFolder), AttackFrameCount, applyTransparency: false);
                             currentProgress += step;
 
-                            progressReport?.Invoke($"DECODING {config.EnemyName.ToUpperInvariant()} ATTACK LOGIC...", currentProgress);
-                            PrewarmFrameSequence(Path.Combine(enemyPath, "attack"), $"{enemyFolder}_attack", AttackFrameCount, applyTransparency: true);
+                            if (progressReport != null) progressReport.Invoke(string.Format("DECODING {0} ATTACK LOGIC...", config.EnemyName.ToUpperInvariant()), currentProgress);
+                            PrewarmFrameSequence(Path.Combine(enemyPath, "attack"), string.Format("{0}_attack", enemyFolder), AttackFrameCount, applyTransparency: true);
                             currentProgress += step;
 
-                            progressReport?.Invoke($"CACHING {config.EnemyName.ToUpperInvariant()} REACTION ARRAYS...", currentProgress);
-                            PrewarmFrameSequence(Path.Combine(enemyPath, "hurt"), $"{enemyFolder}_hurt", AttackFrameCount, applyTransparency: false);
+                            if (progressReport != null) progressReport.Invoke(string.Format("CACHING {0} REACTION ARRAYS...", config.EnemyName.ToUpperInvariant()), currentProgress);
+                            PrewarmFrameSequence(Path.Combine(enemyPath, "hurt"), string.Format("{0}_hurt", enemyFolder), AttackFrameCount, applyTransparency: false);
                             currentProgress += step;
 
-                            progressReport?.Invoke($"STABILIZING {config.EnemyName.ToUpperInvariant()} COGNITIVE STATE...", currentProgress);
-                            PrewarmFrameSequence(Path.Combine(enemyPath, "ide"), $"{enemyFolder}_ide", IdleFrameCount, applyTransparency: false);
+                            if (progressReport != null) progressReport.Invoke(string.Format("STABILIZING {0} COGNITIVE STATE...", config.EnemyName.ToUpperInvariant()), currentProgress);
+                            PrewarmFrameSequence(Path.Combine(enemyPath, "ide"), string.Format("{0}_ide", enemyFolder), IdleFrameCount, applyTransparency: false);
                             currentProgress += step;
 
-                            progressReport?.Invoke("DECRYPTION SYNCHRONIZED. READY FOR COMBAT.", 100.0);
+                            if (progressReport != null) progressReport.Invoke("DECRYPTION SYNCHRONIZED. READY FOR COMBAT.", 100.0);
                         }
                         catch (Exception ex)
                         {
                             Debug.WriteLine("Prewarm Error: " + ex.Message);
-                            progressReport?.Invoke("ERROR: DECRYPTION SCHEMATIC TAMPERED.", 100.0);
+                            if (progressReport != null) progressReport.Invoke("ERROR: DECRYPTION SCHEMATIC TAMPERED.", 100.0);
                         }
                     });
 
@@ -278,7 +282,7 @@ namespace CodeRift.Forms
 
             if (isExisting)
             {
-                progressReport?.Invoke("DECRYPTION SYNCHRONIZED. READY FOR COMBAT.", 100.0);
+                if (progressReport != null) progressReport.Invoke("DECRYPTION SYNCHRONIZED. READY FOR COMBAT.", 100.0);
             }
 
             await loadTask;
@@ -305,10 +309,10 @@ namespace CodeRift.Forms
                     : DefaultEnemyAssetFolder;
                 string enemyPath   = Path.Combine(enemyRoot, enemyFolder);
 
-                PrewarmFrameSequence(Path.Combine(enemyPath, "run"),    $"{enemyFolder}_run",    AttackFrameCount, applyTransparency: false);
-                PrewarmFrameSequence(Path.Combine(enemyPath, "attack"), $"{enemyFolder}_attack", AttackFrameCount, applyTransparency: true);
-                PrewarmFrameSequence(Path.Combine(enemyPath, "hurt"),   $"{enemyFolder}_hurt",   AttackFrameCount, applyTransparency: false);
-                PrewarmFrameSequence(Path.Combine(enemyPath, "ide"),    $"{enemyFolder}_ide",    IdleFrameCount,   applyTransparency: false);
+                PrewarmFrameSequence(Path.Combine(enemyPath, "run"),    string.Format("{0}_run", enemyFolder),    AttackFrameCount, applyTransparency: false);
+                PrewarmFrameSequence(Path.Combine(enemyPath, "attack"), string.Format("{0}_attack", enemyFolder), AttackFrameCount, applyTransparency: true);
+                PrewarmFrameSequence(Path.Combine(enemyPath, "hurt"),   string.Format("{0}_hurt", enemyFolder),   AttackFrameCount, applyTransparency: false);
+                PrewarmFrameSequence(Path.Combine(enemyPath, "ide"),    string.Format("{0}_ide", enemyFolder),    IdleFrameCount,   applyTransparency: false);
             }
             catch (Exception ex)
             {
@@ -325,11 +329,13 @@ namespace CodeRift.Forms
 
             for (int i = 0; i < frameCount; i++)
             {
-                string path = Path.Combine(folderPath, $"{prefix}_{i + 1:D2}.png");
+                string path = Path.Combine(folderPath, string.Format("{0}_{1:D2}.png", prefix, i + 1));
                 if (File.Exists(path))
                 {
                     // LoadFrame populates BattleAssetCache; the returned clone is discarded here.
-                    using Image frame = LoadFrame(path, applyTransparency);
+                    using (Image frame = LoadFrame(path, applyTransparency))
+                    {
+                    }
                 }
             }
         }
@@ -347,15 +353,15 @@ namespace CodeRift.Forms
 
         private void ConfigureActorRenderSizes()
         {
-            _playerActor.RenderSize = picPlayerPortrait.Size;
-            _enemyActor.RenderSize = picEnemyPortrait.Size;
+            Size baseSize = picPlayerPortrait.Size;
+            float playerScale = PlayerScalePercent / 100f;
+            _playerActor.RenderSize = new Size(
+                (int)Math.Round(baseSize.Width * playerScale),
+                (int)Math.Round(baseSize.Height * playerScale));
 
-            if (_levelConfig.EnemyRenderScale != 1.0f)
-            {
-                _enemyActor.RenderSize = new Size(
-                    (int)Math.Round(_enemyActor.RenderSize.Width * _levelConfig.EnemyRenderScale),
-                    (int)Math.Round(_enemyActor.RenderSize.Height * _levelConfig.EnemyRenderScale));
-            }
+            _enemyActor.RenderSize = new Size(
+                (int)Math.Round(baseSize.Width * _levelConfig.EnemyRenderScale),
+                (int)Math.Round(baseSize.Height * _levelConfig.EnemyRenderScale));
         }
 
         private void SetupBackgroundTintLayer()
@@ -403,10 +409,10 @@ namespace CodeRift.Forms
         {
             string playerPath = ResolveAssetPath("Assets", "Images", "player");
 
-            LoadFrameSequence(Path.Combine(playerPath, "run"), "player_run", _playerActor.RunFrames, applyTransparency: true, "player run");
-            LoadFrameSequence(Path.Combine(playerPath, "attack"), "player_attack", _playerActor.AttackFrames, applyTransparency: true, "player attack");
-            LoadFrameSequence(Path.Combine(playerPath, "hurt"), "player_hurt", _playerActor.HurtFrames, applyTransparency: false, "player hurt");
-            LoadFrameSequence(Path.Combine(playerPath, "ide"), "player_ide", _playerActor.IdleFrames, applyTransparency: false, "player idle");
+            LoadFrameSequence(Path.Combine(playerPath, "run"), "player_run", _playerActor.RunFrames, true, "player run");
+            LoadFrameSequence(Path.Combine(playerPath, "attack"), "player_attack", _playerActor.AttackFrames, true, "player attack");
+            LoadFrameSequence(Path.Combine(playerPath, "hurt"), "player_hurt", _playerActor.HurtFrames, false, "player hurt");
+            LoadFrameSequence(Path.Combine(playerPath, "ide"), "player_ide", _playerActor.IdleFrames, false, "player idle");
 
             FillMissingFrames(_playerActor.AttackFrames, _playerActor.RunFrames);
             FillMissingFrames(_playerActor.HurtFrames, _playerActor.RunFrames);
@@ -421,33 +427,33 @@ namespace CodeRift.Forms
 
             if (!StringComparer.OrdinalIgnoreCase.Equals(enemyFolder, _levelConfig.Enemy.AssetFolder))
             {
-                LogAssetWarning($"Enemy asset folder '{_levelConfig.Enemy.AssetFolder}' was not found. Falling back to '{DefaultEnemyAssetFolder}'.");
+                LogAssetWarning(string.Format("Enemy asset folder '{0}' was not found. Falling back to '{1}'.", _levelConfig.Enemy.AssetFolder, DefaultEnemyAssetFolder));
             }
 
             enemyPath = Path.Combine(enemyRoot, enemyFolder);
 
-            LoadFrameSequence(Path.Combine(enemyPath, "run"), $"{enemyFolder}_run", _enemyActor.RunFrames, applyTransparency: false, $"{enemyFolder} run");
-            LoadFrameSequence(Path.Combine(enemyPath, "attack"), $"{enemyFolder}_attack", _enemyActor.AttackFrames, applyTransparency: true, $"{enemyFolder} attack");
-            LoadFrameSequence(Path.Combine(enemyPath, "hurt"), $"{enemyFolder}_hurt", _enemyActor.HurtFrames, applyTransparency: false, $"{enemyFolder} hurt");
-            LoadFrameSequence(Path.Combine(enemyPath, "ide"), $"{enemyFolder}_ide", _enemyActor.IdleFrames, applyTransparency: false, $"{enemyFolder} idle");
+            LoadFrameSequence(Path.Combine(enemyPath, "run"), string.Format("{0}_run", enemyFolder), _enemyActor.RunFrames, false, string.Format("{0} run", enemyFolder));
+            LoadFrameSequence(Path.Combine(enemyPath, "attack"), string.Format("{0}_attack", enemyFolder), _enemyActor.AttackFrames, true, string.Format("{0} attack", enemyFolder));
+            LoadFrameSequence(Path.Combine(enemyPath, "hurt"), string.Format("{0}_hurt", enemyFolder), _enemyActor.HurtFrames, false, string.Format("{0} hurt", enemyFolder));
+            LoadFrameSequence(Path.Combine(enemyPath, "ide"), string.Format("{0}_ide", enemyFolder), _enemyActor.IdleFrames, false, string.Format("{0} idle", enemyFolder));
 
             FillMissingFrames(_enemyActor.HurtFrames, _enemyActor.RunFrames);
             FillMissingFrames(_enemyActor.AttackFrames, _enemyActor.RunFrames);
             FillMissingFrames(_enemyActor.IdleFrames, _enemyActor.RunFrames);
         }
 
-        private static void LoadFrameSequence(string folderPath, string preferredPrefix, Image?[] targetFrames, bool applyTransparency, string sequenceName)
+        private static void LoadFrameSequence(string folderPath, string preferredPrefix, Image[] targetFrames, bool applyTransparency, string sequenceName)
         {
             if (!Directory.Exists(folderPath))
             {
-                LogAssetWarning($"Animation folder missing for {sequenceName}: {folderPath}");
+                LogAssetWarning(string.Format("Animation folder missing for {0}: {1}", sequenceName, folderPath));
                 return;
             }
 
             bool foundPreferredFrames = false;
             for (int i = 0; i < targetFrames.Length; i++)
             {
-                string preferredPath = Path.Combine(folderPath, $"{preferredPrefix}_{i + 1:D2}.png");
+                string preferredPath = Path.Combine(folderPath, string.Format("{0}_{1:D2}.png", preferredPrefix, i + 1));
                 if (!File.Exists(preferredPath))
                 {
                     continue;
@@ -475,7 +481,7 @@ namespace CodeRift.Forms
 
             if (targetFrames.All(frame => frame == null))
             {
-                LogAssetWarning($"No animation frames loaded for {sequenceName}: {folderPath}");
+                LogAssetWarning(string.Format("No animation frames loaded for {0}: {1}", sequenceName, folderPath));
             }
         }
 
@@ -515,16 +521,21 @@ namespace CodeRift.Forms
         private static Image LoadImageFromDisk(string path)
         {
             byte[] bytes = File.ReadAllBytes(path);
-            using MemoryStream stream = new MemoryStream(bytes, writable: false);
-            using Image loadedImage = Image.FromStream(stream);
-            return new Bitmap(loadedImage);
+            using (MemoryStream stream = new MemoryStream(bytes, writable: false))
+            {
+                using (Image loadedImage = Image.FromStream(stream))
+                {
+                    return new Bitmap(loadedImage);
+                }
+            }
         }
 
         private static Image GetCachedImage(string cacheKey, Func<Image> createImage)
         {
             lock (BattleAssetCacheLock)
             {
-                if (!BattleAssetCache.TryGetValue(cacheKey, out Image? cachedImage))
+                Image cachedImage;
+                if (!BattleAssetCache.TryGetValue(cacheKey, out cachedImage))
                 {
                     cachedImage = createImage();
                     BattleAssetCache[cacheKey] = cachedImage;
@@ -538,10 +549,13 @@ namespace CodeRift.Forms
         {
             string name = Path.GetFileNameWithoutExtension(path);
             string digits = new string(name.Where(char.IsDigit).ToArray());
-            return int.TryParse(digits, out int value) ? value : int.MaxValue;
+            int value;
+            if (int.TryParse(digits, out value))
+                return value;
+            return int.MaxValue;
         }
 
-        private static void FillMissingFrames(Image?[] targetFrames, Image?[] fallbackFrames)
+        private static void FillMissingFrames(Image[] targetFrames, Image[] fallbackFrames)
         {
             for (int i = 0; i < targetFrames.Length; i++)
             {
@@ -550,7 +564,7 @@ namespace CodeRift.Forms
                     continue;
                 }
 
-                Image? fallback = i < fallbackFrames.Length && fallbackFrames[i] != null
+                Image fallback = i < fallbackFrames.Length && fallbackFrames[i] != null
                     ? fallbackFrames[i]
                     : targetFrames.FirstOrDefault(frame => frame != null) ?? fallbackFrames.FirstOrDefault(frame => frame != null);
 
@@ -565,7 +579,7 @@ namespace CodeRift.Forms
         /// Pads all frames to one shared canvas (max width/height in the set), bottom-aligned and centered.
         /// This keeps animation scale/footing stable even when source image sizes differ.
         /// </summary>
-        private static void NormalizeActorFrames(params Image?[][] frameSets)
+        private static void NormalizeActorFrames(params Image[][] frameSets)
         {
             int maxWidth = 0;
             int maxHeight = 0;
@@ -590,7 +604,7 @@ namespace CodeRift.Forms
                 for (int i = 0; i < frameSet.Length; i++)
                 {
                     if (frameSet[i] == null) continue;
-                    frameSet[i] = NormalizeFrameCanvas(frameSet[i]!, maxWidth, maxHeight);
+                    frameSet[i] = NormalizeFrameCanvas(frameSet[i], maxWidth, maxHeight);
                 }
             }
         }
@@ -630,7 +644,7 @@ namespace CodeRift.Forms
             Queue<int> queue = new Queue<int>();
 
             Rectangle bounds = new Rectangle(0, 0, width, height);
-            BitmapData? bitmapData = null;
+            BitmapData bitmapData = null;
 
             try
             {
@@ -640,61 +654,18 @@ namespace CodeRift.Forms
                 byte[] pixels = new byte[totalBytes];
                 Marshal.Copy(bitmapData.Scan0, pixels, 0, totalBytes);
 
-                int ToVisitedIndex(int x, int y) => (y * width) + x;
-                int ToPixelOffset(int x, int y) => (y * stride) + (x * 4);
-
-                bool IsNearBlackAtPixelOffset(int offset)
-                {
-                    byte b = pixels[offset];
-                    byte gCh = pixels[offset + 1];
-                    byte r = pixels[offset + 2];
-                    byte a = pixels[offset + 3];
-                    return a > 0 && r <= threshold && gCh <= threshold && b <= threshold;
-                }
-
-                void SetTransparentAtPixelOffset(int offset)
-                {
-                    pixels[offset] = 0;
-                    pixels[offset + 1] = 0;
-                    pixels[offset + 2] = 0;
-                    pixels[offset + 3] = 0;
-                }
-
                 // Seed flood-fill from image borders only. This removes background black
                 // while preserving dark details inside the character.
-                void TryEnqueue(int x, int y)
-                {
-                    if (x < 0 || y < 0 || x >= width || y >= height)
-                    {
-                        return;
-                    }
-
-                    int visitedIndex = ToVisitedIndex(x, y);
-                    if (visited[visitedIndex])
-                    {
-                        return;
-                    }
-
-                    visited[visitedIndex] = true;
-                    int pixelOffset = ToPixelOffset(x, y);
-                    if (!IsNearBlackAtPixelOffset(pixelOffset))
-                    {
-                        return;
-                    }
-
-                    queue.Enqueue(visitedIndex);
-                }
-
                 for (int x = 0; x < width; x++)
                 {
-                    TryEnqueue(x, 0);
-                    TryEnqueue(x, height - 1);
+                    FloodFillTryEnqueue(x, 0, width, height, visited, pixels, stride, threshold, queue);
+                    FloodFillTryEnqueue(x, height - 1, width, height, visited, pixels, stride, threshold, queue);
                 }
 
                 for (int y = 0; y < height; y++)
                 {
-                    TryEnqueue(0, y);
-                    TryEnqueue(width - 1, y);
+                    FloodFillTryEnqueue(0, y, width, height, visited, pixels, stride, threshold, queue);
+                    FloodFillTryEnqueue(width - 1, y, width, height, visited, pixels, stride, threshold, queue);
                 }
 
                 while (queue.Count > 0)
@@ -702,8 +673,8 @@ namespace CodeRift.Forms
                     int visitedIndex = queue.Dequeue();
                     int y = visitedIndex / width;
                     int x = visitedIndex - (y * width);
-                    int currentPixelOffset = ToPixelOffset(x, y);
-                    SetTransparentAtPixelOffset(currentPixelOffset);
+                    int currentPixelOffset = FloodFillToPixelOffset(x, y, stride);
+                    FloodFillSetTransparent(currentPixelOffset, pixels);
 
                     for (int i = 0; i < 4; i++)
                     {
@@ -714,15 +685,15 @@ namespace CodeRift.Forms
                             continue;
                         }
 
-                        int nextVisitedIndex = ToVisitedIndex(nextX, nextY);
+                        int nextVisitedIndex = FloodFillToVisitedIndex(nextX, nextY, width);
                         if (visited[nextVisitedIndex])
                         {
                             continue;
                         }
 
                         visited[nextVisitedIndex] = true;
-                        int nextPixelOffset = ToPixelOffset(nextX, nextY);
-                        if (IsNearBlackAtPixelOffset(nextPixelOffset))
+                        int nextPixelOffset = FloodFillToPixelOffset(nextX, nextY, stride);
+                        if (FloodFillIsNearBlack(nextPixelOffset, pixels, threshold))
                         {
                             queue.Enqueue(nextVisitedIndex);
                         }
@@ -740,6 +711,56 @@ namespace CodeRift.Forms
             }
 
             return output;
+        }
+
+        private static int FloodFillToVisitedIndex(int x, int y, int width)
+        {
+            return (y * width) + x;
+        }
+
+        private static int FloodFillToPixelOffset(int x, int y, int stride)
+        {
+            return (y * stride) + (x * 4);
+        }
+
+        private static bool FloodFillIsNearBlack(int offset, byte[] pixels, byte threshold)
+        {
+            byte b = pixels[offset];
+            byte gCh = pixels[offset + 1];
+            byte r = pixels[offset + 2];
+            byte a = pixels[offset + 3];
+            return a > 0 && r <= threshold && gCh <= threshold && b <= threshold;
+        }
+
+        private static void FloodFillSetTransparent(int offset, byte[] pixels)
+        {
+            pixels[offset] = 0;
+            pixels[offset + 1] = 0;
+            pixels[offset + 2] = 0;
+            pixels[offset + 3] = 0;
+        }
+
+        private static void FloodFillTryEnqueue(int x, int y, int width, int height, bool[] visited, byte[] pixels, int stride, byte threshold, Queue<int> queue)
+        {
+            if (x < 0 || y < 0 || x >= width || y >= height)
+            {
+                return;
+            }
+
+            int visitedIndex = FloodFillToVisitedIndex(x, y, width);
+            if (visited[visitedIndex])
+            {
+                return;
+            }
+
+            visited[visitedIndex] = true;
+            int pixelOffset = FloodFillToPixelOffset(x, y, stride);
+            if (!FloodFillIsNearBlack(pixelOffset, pixels, threshold))
+            {
+                return;
+            }
+
+            queue.Enqueue(visitedIndex);
         }
 
         private void StartAnimations()
@@ -769,9 +790,7 @@ namespace CodeRift.Forms
 
         private int CalculateGroundBaseline()
         {
-            int desiredGroundBaseline = Math.Max(picPlayerPortrait.Bottom, picEnemyPortrait.Bottom) + GroundDropOffset;
-            int maxVisibleGroundBaseline = pnlBattleZone.Height - GroundVisiblePadding;
-            return Math.Min(desiredGroundBaseline, maxVisibleGroundBaseline);
+            return pnlBattleZone.Height - GroundBottomPadding;
         }
 
         private void SetActorIntroRunPositions()
@@ -802,7 +821,7 @@ namespace CodeRift.Forms
             _animTimer.Start();
         }
 
-        private void AnimTimer_Tick(object? sender, EventArgs e)
+        private void AnimTimer_Tick(object sender, EventArgs e)
         {
             if (_battleEnded || IsDisposed || Disposing)
             {
@@ -894,20 +913,25 @@ namespace CodeRift.Forms
         private void UpdateActorLayout()
         {
             int centerX = pnlBattleZone.Width / 2;
+            int playerW = _playerActor.RenderSize.Width;
+            int enemyW = _enemyActor.RenderSize.Width;
+
             if (_levelConfig.CenterActorsByWidth)
             {
-                int totalWidth = _playerActor.RenderSize.Width + _levelConfig.ActorIdleGap + _enemyActor.RenderSize.Width;
+                int totalWidth = playerW + _levelConfig.ActorIdleGap + enemyW;
                 _playerActor.IdleX = centerX - totalWidth / 2;
-                _enemyActor.IdleX = _playerActor.IdleX + _playerActor.RenderSize.Width + _levelConfig.ActorIdleGap;
+                _enemyActor.IdleX = _playerActor.IdleX + playerW + _levelConfig.ActorIdleGap;
             }
             else
             {
-                _playerActor.IdleX = centerX - 460;
-                _enemyActor.IdleX = centerX + 10;
+                // Place player on the left quarter, enemy on the right quarter.
+                _playerActor.IdleX = centerX / 2 - playerW / 2;
+                _enemyActor.IdleX = centerX + centerX / 2 - enemyW / 2;
             }
 
-            _playerActor.ContactX = _enemyActor.IdleX - _playerActor.RenderSize.Width + _levelConfig.PlayerAttackContactOverlap;
-            _enemyActor.ContactX = _playerActor.IdleX + _playerActor.RenderSize.Width - _levelConfig.EnemyAttackContactOverlap;
+            // Contact X: where the attacking character's leading edge reaches the target.
+            _playerActor.ContactX = _enemyActor.IdleX - playerW + _levelConfig.PlayerAttackContactOverlap;
+            _enemyActor.ContactX = _playerActor.IdleX + playerW - _levelConfig.EnemyAttackContactOverlap;
         }
 
         private void HandleIdleAnimation()
@@ -1068,7 +1092,7 @@ namespace CodeRift.Forms
 
         private void PrepareBattleScreen()
         {
-            lblLevelTitle.Text = $"// LEVEL {Level} : {_levelConfig.EnemyName} //";
+            lblLevelTitle.Text = string.Format("// LEVEL {0} : {1} //", Level, _levelConfig.EnemyName);
             lblEnemyName.Text = _levelConfig.EnemyName;
         }
 
@@ -1111,7 +1135,7 @@ namespace CodeRift.Forms
 
         private void LoadBattleBackground()
         {
-            string backgroundPath = ResolveAssetPath("Assets", "Images", "backgrounds", "level_background", $"level_{Level}.png");
+            string backgroundPath = ResolveAssetPath("Assets", "Images", "backgrounds", "level_background", string.Format("level_{0}.png", Level));
             if (File.Exists(backgroundPath))
             {
                 BackgroundImage = LoadImageCopy(backgroundPath);
@@ -1119,7 +1143,7 @@ namespace CodeRift.Forms
                 return;
             }
 
-            LogAssetWarning($"Background image missing for level {Level}: {backgroundPath}");
+            LogAssetWarning(string.Format("Background image missing for level {0}: {1}", Level, backgroundPath));
         }
 
         private void LoadPortraitAssets()
@@ -1129,7 +1153,7 @@ namespace CodeRift.Forms
             string fallbackEnemyPortraitPath = ResolveAssetPath("Assets", "Images", "portraits", DefaultEnemyPortraitFileName);
 
             LoadPictureBoxImage(picPlayerThumb, playerPortraitPath, "player portrait");
-            LoadPictureBoxImage(picEnemyThumb, enemyPortraitPath, $"{_levelConfig.Enemy.Name} portrait", fallbackEnemyPortraitPath);
+            LoadPictureBoxImage(picEnemyThumb, enemyPortraitPath, string.Format("{0} portrait", _levelConfig.Enemy.Name), fallbackEnemyPortraitPath);
         }
 
         private void LoadCardAssets()
@@ -1161,17 +1185,17 @@ namespace CodeRift.Forms
             TerminalMessageBox.Show(this, "Load Error: " + ex.Message, "Load Error", TerminalMessageType.Error);
         }
 
-        private static void LoadPictureBoxImage(PictureBox pictureBox, string path, string description, string? fallbackPath = null)
+        private static void LoadPictureBoxImage(PictureBox pictureBox, string path, string description, string fallbackPath = null)
         {
             string selectedPath = path;
             if (!File.Exists(selectedPath))
             {
-                LogAssetWarning($"{description} missing: {selectedPath}");
+                LogAssetWarning(string.Format("{0} missing: {1}", description, selectedPath));
 
                 if (!string.IsNullOrWhiteSpace(fallbackPath) && File.Exists(fallbackPath))
                 {
                     selectedPath = fallbackPath;
-                    LogAssetWarning($"Using fallback for {description}: {selectedPath}");
+                    LogAssetWarning(string.Format("Using fallback for {0}: {1}", description, selectedPath));
                 }
                 else
                 {
@@ -1186,8 +1210,8 @@ namespace CodeRift.Forms
         {
             for (int i = 0; i < boxes.Length; i++)
             {
-                string path = ResolveAssetPath("Assets", "Images", folder, "cards", $"{prefix}_{i + 1}.jpeg");
-                LoadPictureBoxImage(boxes[i], path, $"{folder} card {i + 1}");
+                string path = ResolveAssetPath("Assets", "Images", folder, "cards", string.Format("{0}_{1}.jpeg", prefix, i + 1));
+                LoadPictureBoxImage(boxes[i], path, string.Format("{0} card {1}", folder, i + 1));
 
                 if (folder == "player")
                 {
@@ -1211,14 +1235,16 @@ namespace CodeRift.Forms
             cardPictureBox.Click += PlayerCard_Click;
         }
 
-        private void PlayerCard_MouseEnter(object? sender, EventArgs e)
+        private void PlayerCard_MouseEnter(object sender, EventArgs e)
         {
-            if (sender is not PictureBox cardPictureBox)
+            PictureBox cardPictureBox = sender as PictureBox;
+            if (cardPictureBox == null)
             {
                 return;
             }
 
-            if (!_cardIdByPicture.TryGetValue(cardPictureBox, out int cardId))
+            int cardId;
+            if (!_cardIdByPicture.TryGetValue(cardPictureBox, out cardId))
             {
                 return;
             }
@@ -1238,14 +1264,15 @@ namespace CodeRift.Forms
         /// 3) if correct -> player attack
         /// 4) if wrong -> card lock + enemy attack + forced retry on same card
         /// </summary>
-        private void PlayerCard_Click(object? sender, EventArgs e)
+        private void PlayerCard_Click(object sender, EventArgs e)
         {
-            if (!TryGetPlayableCardId(sender, out int selectedCardId))
+            int selectedCardId;
+            if (!TryGetPlayableCardId(sender, out selectedCardId))
             {
                 return;
             }
 
-            using BattleArenaQuestionForm? questionForm = OpenQuestionForm();
+            BattleArenaQuestionForm questionForm = OpenQuestionForm();
             if (questionForm == null)
             {
                 return;
@@ -1256,11 +1283,12 @@ namespace CodeRift.Forms
             ApplyPlayerTurnResult(turnResult);
         }
 
-        private bool TryGetPlayableCardId(object? sender, out int selectedCardId)
+        private bool TryGetPlayableCardId(object sender, out int selectedCardId)
         {
             selectedCardId = 0;
 
-            if (_battleEnded || _currentState != BattleState.IdleLoop || sender is not PictureBox card)
+            PictureBox card = sender as PictureBox;
+            if (_battleEnded || _currentState != BattleState.IdleLoop || card == null)
             {
                 return false;
             }
@@ -1288,12 +1316,12 @@ namespace CodeRift.Forms
         {
             TerminalMessageBox.Show(
                 this,
-                $"Card {_battleEngine.LockedCardId} is locked. Retry that card first.",
+                string.Format("Card {0} is locked. Retry that card first.", _battleEngine.LockedCardId),
                 "Locked Card",
                 TerminalMessageType.Warning);
         }
 
-        private BattleArenaQuestionForm? OpenQuestionForm()
+        private BattleArenaQuestionForm OpenQuestionForm()
         {
             Question challenge = QuestionManager.Instance.GetRandomQuestion(Level);
             BattleArenaQuestionForm questionForm = new BattleArenaQuestionForm();
@@ -1308,7 +1336,17 @@ namespace CodeRift.Forms
 
             questionForm.Populate(challenge, 1, 5);
 
+            // Pause the idle threat timer while the question is open so it
+            // does not expire silently in the background.
+            double savedIdleElapsed = _idleTimeElapsedSeconds;
+
             DialogResult questionResult = questionForm.ShowDialog();
+
+            // Restore the idle timer so the player keeps their remaining
+            // threat time from before the question opened.
+            _idleTimeElapsedSeconds = savedIdleElapsed;
+            UpdateIdleTimerDisplay();
+
             if (questionResult == DialogResult.Cancel)
             {
                 questionForm.Dispose();
@@ -1456,20 +1494,7 @@ namespace CodeRift.Forms
             _idleTimeElapsedSeconds += (AnimationTimerIntervalMs / 1000.0);
 
             double timeLeft = Math.Max(0.0, 15.0 - _idleTimeElapsedSeconds);
-            lblTimer.Text = $"[THREAT: {Math.Ceiling(timeLeft):00}s]";
-
-            if (timeLeft <= 5.0)
-            {
-                lblTimer.ForeColor = Color.FromArgb(255, 65, 65); // Cyber Red
-            }
-            else if (timeLeft <= 8.0)
-            {
-                lblTimer.ForeColor = Color.Yellow;
-            }
-            else
-            {
-                lblTimer.ForeColor = Color.FromArgb(0, 255, 65); // Matrix Green
-            }
+            UpdateIdleTimerDisplay();
 
             if (timeLeft <= 0.0)
             {
@@ -1486,6 +1511,25 @@ namespace CodeRift.Forms
                 _idleTimeoutFlashFrames = 15;
 
                 EvaluateBattleResult();
+            }
+        }
+
+        private void UpdateIdleTimerDisplay()
+        {
+            double timeLeft = Math.Max(0.0, 15.0 - _idleTimeElapsedSeconds);
+            lblTimer.Text = string.Format("[THREAT: {0:00}s]", Math.Ceiling(timeLeft));
+
+            if (timeLeft <= 5.0)
+            {
+                lblTimer.ForeColor = Color.FromArgb(255, 65, 65); // Cyber Red
+            }
+            else if (timeLeft <= 8.0)
+            {
+                lblTimer.ForeColor = Color.Yellow;
+            }
+            else
+            {
+                lblTimer.ForeColor = Color.FromArgb(0, 255, 65); // Matrix Green
             }
         }
 
@@ -1599,10 +1643,10 @@ namespace CodeRift.Forms
                 _spriteCanvas.Image = null;
             }
 
-            _spriteBufferGraphics?.Dispose();
+            if (_spriteBufferGraphics != null) _spriteBufferGraphics.Dispose();
             _spriteBufferGraphics = null;
 
-            _spriteBuffer?.Dispose();
+            if (_spriteBuffer != null) _spriteBuffer.Dispose();
             _spriteBuffer = null;
         }
 
@@ -1749,17 +1793,18 @@ namespace CodeRift.Forms
             }
 
             _usedPlayerCards.Add(cardId);
-            if (_pictureByCardId.TryGetValue(cardId, out PictureBox? card))
+            PictureBox card;
+            if (_pictureByCardId.TryGetValue(cardId, out card))
             {
-                Image? originalImage = card.Image;
+                Image originalImage = card.Image;
                 card.Image = CreateDarkenedImage(originalImage);
-                originalImage?.Dispose();
+                if (originalImage != null) originalImage.Dispose();
                 card.BorderStyle = BorderStyle.Fixed3D;
                 card.Cursor = Cursors.No;
             }
         }
 
-        private Image? CreateDarkenedImage(Image? source)
+        private Image CreateDarkenedImage(Image source)
         {
             if (source == null)
             {
@@ -1767,29 +1812,30 @@ namespace CodeRift.Forms
             }
 
             Bitmap darkened = new Bitmap(source.Width, source.Height);
-            using Graphics g = Graphics.FromImage(darkened);
-            using ImageAttributes imageAttributes = new ImageAttributes();
-
-            // Reduce brightness heavily to make the card look "used".
-            ColorMatrix matrix = new ColorMatrix(new float[][]
+            using (Graphics g = Graphics.FromImage(darkened))
+            using (ImageAttributes imageAttributes = new ImageAttributes())
             {
-                new float[] { 0.20f, 0, 0, 0, 0 },
-                new float[] { 0, 0.20f, 0, 0, 0 },
-                new float[] { 0, 0, 0.20f, 0, 0 },
-                new float[] { 0, 0, 0, 1f, 0 },
-                new float[] { 0, 0, 0, 0, 1f }
-            });
+                // Reduce brightness heavily to make the card look "used".
+                ColorMatrix matrix = new ColorMatrix(new float[][]
+                {
+                    new float[] { 0.20f, 0, 0, 0, 0 },
+                    new float[] { 0, 0.20f, 0, 0, 0 },
+                    new float[] { 0, 0, 0.20f, 0, 0 },
+                    new float[] { 0, 0, 0, 1f, 0 },
+                    new float[] { 0, 0, 0, 0, 1f }
+                });
 
-            imageAttributes.SetColorMatrix(matrix);
-            g.DrawImage(
-                source,
-                new Rectangle(0, 0, darkened.Width, darkened.Height),
-                0,
-                0,
-                source.Width,
-                source.Height,
-                GraphicsUnit.Pixel,
-                imageAttributes);
+                imageAttributes.SetColorMatrix(matrix);
+                g.DrawImage(
+                    source,
+                    new Rectangle(0, 0, darkened.Width, darkened.Height),
+                    0,
+                    0,
+                    source.Width,
+                    source.Height,
+                    GraphicsUnit.Pixel,
+                    imageAttributes);
+            }
 
             return darkened;
         }
@@ -1838,16 +1884,16 @@ namespace CodeRift.Forms
                 picEnemyCard3,
                 picEnemyCard4,
                 picEnemyCard5);
-            BackgroundImage?.Dispose();
+            if (BackgroundImage != null) BackgroundImage.Dispose();
             BackgroundImage = null;
             base.OnFormClosing(e);
         }
 
-        private static void DisposeFrameSet(Image?[] frames)
+        private static void DisposeFrameSet(Image[] frames)
         {
             for (int i = 0; i < frames.Length; i++)
             {
-                frames[i]?.Dispose();
+                if (frames[i] != null) frames[i].Dispose();
                 frames[i] = null;
             }
         }
@@ -1856,9 +1902,9 @@ namespace CodeRift.Forms
         {
             foreach (PictureBox pictureBox in pictureBoxes)
             {
-                Image? image = pictureBox.Image;
+                Image image = pictureBox.Image;
                 pictureBox.Image = null;
-                image?.Dispose();
+                if (image != null) image.Dispose();
             }
         }
 

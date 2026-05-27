@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using System.Text.Json;
+using Newtonsoft.Json;
 
 namespace CodeRift.Managers
 {
@@ -27,9 +27,9 @@ namespace CodeRift.Managers
             ResetProgress();
         }
 
-        public static ProgressManager Instance => _instance;
+        public static ProgressManager Instance { get { return _instance; } }
 
-        public int UnlockedLevels => Math.Min(MaxLevel, _highestCompletedLevel + 1);
+        public int UnlockedLevels { get { return Math.Min(MaxLevel, _highestCompletedLevel + 1); } }
 
         public void UnlockNextLevel(int completedLevel)
         {
@@ -82,7 +82,7 @@ namespace CodeRift.Managers
                 }
 
                 string json = File.ReadAllText(_saveFilePath);
-                ProgressSaveData? saveData = JsonSerializer.Deserialize<ProgressSaveData>(json);
+                ProgressSaveData saveData = JsonConvert.DeserializeObject<ProgressSaveData>(json);
                 if (saveData == null)
                 {
                     return;
@@ -101,7 +101,7 @@ namespace CodeRift.Managers
         {
             try
             {
-                string? directoryPath = Path.GetDirectoryName(_saveFilePath);
+                string directoryPath = Path.GetDirectoryName(_saveFilePath);
                 if (!string.IsNullOrWhiteSpace(directoryPath))
                 {
                     Directory.CreateDirectory(directoryPath);
@@ -112,10 +112,7 @@ namespace CodeRift.Managers
                     HighestCompletedLevel = _highestCompletedLevel
                 };
 
-                string json = JsonSerializer.Serialize(saveData, new JsonSerializerOptions
-                {
-                    WriteIndented = true
-                });
+                string json = JsonConvert.SerializeObject(saveData, Formatting.Indented);
 
                 File.WriteAllText(_saveFilePath, json);
             }

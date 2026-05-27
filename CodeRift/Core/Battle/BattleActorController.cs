@@ -1,3 +1,4 @@
+using System;
 using System.Drawing;
 
 namespace CodeRift.Core
@@ -6,23 +7,23 @@ namespace CodeRift.Core
     {
         protected BattleActorController(int attackFrameCount, int idleFrameCount)
         {
-            RunFrames = new Image?[attackFrameCount];
-            IdleFrames = new Image?[idleFrameCount];
-            AttackFrames = new Image?[attackFrameCount];
-            HurtFrames = new Image?[attackFrameCount];
+            RunFrames = new Image[attackFrameCount];
+            IdleFrames = new Image[idleFrameCount];
+            AttackFrames = new Image[attackFrameCount];
+            HurtFrames = new Image[attackFrameCount];
         }
 
-        public Image?[] RunFrames { get; }
-        public Image?[] IdleFrames { get; }
-        public Image?[] AttackFrames { get; }
-        public Image?[] HurtFrames { get; }
+        public Image[] RunFrames { get; private set; }
+        public Image[] IdleFrames { get; private set; }
+        public Image[] AttackFrames { get; private set; }
+        public Image[] HurtFrames { get; private set; }
 
         public Point Position { get; set; }
         public int IdleX { get; set; }
         public int IdleY { get; set; }
         public int ContactX { get; set; }
         public Size RenderSize { get; set; }
-        public Image? CurrentImage { get; private set; }
+        public Image CurrentImage { get; private set; }
 
         public void SetRunFrame(int frameIndex)
         {
@@ -44,7 +45,7 @@ namespace CodeRift.Core
             CurrentImage = HurtFrames[frameIndex];
         }
 
-        public void SetCurrentImage(Image? image)
+        public void SetCurrentImage(Image image)
         {
             CurrentImage = image;
         }

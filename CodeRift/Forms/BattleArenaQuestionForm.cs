@@ -24,7 +24,7 @@ namespace CodeRift.Forms
 
         private Color _accentColor = DefaultAccent;
         private Color _mutedColor = DefaultMuted;
-        private string? _selectedOption;
+        private string _selectedOption;
         private string _typedCommandBuffer = string.Empty;
         private bool _isSubmitting;
         private bool _isShowingCodeInputPlaceholder;
@@ -36,10 +36,10 @@ namespace CodeRift.Forms
         private double _totalAllowedTime;
         private int _lastTickedSecond = -1;
 
-        public Question? CurrentQuestion { get; private set; }
+        public Question CurrentQuestion { get; private set; }
         public bool WasAnswerCorrect { get; private set; }
         public QuestionSkipCommandType SkipCommand { get; private set; }
-        public Action<string, Color>? OnTimerTick;
+        public Action<string, Color> OnTimerTick;
 
         public BattleArenaQuestionForm()
         {
@@ -70,17 +70,17 @@ namespace CodeRift.Forms
 
         private int GetAllowedTimeForLevel(int level)
         {
-            return level switch
+            switch (level)
             {
-                1 => 35,
-                2 => 30,
-                3 => 25,
-                4 => 22,
-                _ => 20
-            };
+                case 1: return 35;
+                case 2: return 30;
+                case 3: return 25;
+                case 4: return 22;
+                default: return 20;
+            }
         }
 
-        private void QuestionTimer_Tick(object? sender, EventArgs e)
+        private void QuestionTimer_Tick(object sender, EventArgs e)
         {
             if (_isSubmitting || IsDisposed)
             {
@@ -90,7 +90,7 @@ namespace CodeRift.Forms
             if (_graceLeftSeconds > 0)
             {
                 _graceLeftSeconds -= 0.1;
-                UpdateTimerUI($"[SEC_SECURE: {Math.Ceiling(_timeLeftSeconds):00}s]", _accentColor);
+                UpdateTimerUI(string.Format("[SEC_SECURE: {0:00}s]", Math.Ceiling(_timeLeftSeconds)), _accentColor);
                 return;
             }
 
@@ -104,7 +104,7 @@ namespace CodeRift.Forms
                 return;
             }
 
-            string text = $"[TIME_LEFT: {Math.Ceiling(_timeLeftSeconds):00}s]";
+            string text = string.Format("[TIME_LEFT: {0:00}s]", Math.Ceiling(_timeLeftSeconds));
             Color color = _accentColor;
 
             int currentSec = (int)Math.Ceiling(_timeLeftSeconds);
@@ -136,7 +136,7 @@ namespace CodeRift.Forms
         {
             lblTimer.Text = text;
             lblTimer.ForeColor = color;
-            OnTimerTick?.Invoke(text, color);
+            if (OnTimerTick != null) OnTimerTick.Invoke(text, color);
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -148,7 +148,7 @@ namespace CodeRift.Forms
         private void EnableDoubleBuffer(Control control)
         {
             var property = typeof(Control).GetProperty("DoubleBuffered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            property?.SetValue(control, true, null);
+            if (property != null) property.SetValue(control, true, null);
 
             foreach (Control child in control.Controls)
             {
@@ -175,7 +175,7 @@ namespace CodeRift.Forms
 
         private void ConfigureDefaultLabels()
         {
-            lblSystemId.Text = $"SYS_ID: CR-{Random.Shared.Next(100, 999)}-X | MODE: CMD_AUTH";
+            lblSystemId.Text = string.Format("SYS_ID: CR-{0}-X | MODE: CMD_AUTH", new Random().Next(100, 999));
             btnSubmit.Text = "CONFIRM_RUN [ENTER]";
             btnBack.Text = "[ESC] BACK";
             txtCodeInput.AcceptsTab = true;
@@ -197,8 +197,8 @@ namespace CodeRift.Forms
             ClearOptionHighlights();
 
             lblQuestion.Text = data.ProblemStatement;
-            lblQuestionCounter.Text = $"/// LEVEL_{data.Level:D2}: {data.LevelTitle} | TASK: {current:D2}_OF_{total:D2} ///";
-            lblHint.Text = $"> HINT: {data.Hint}";
+            lblQuestionCounter.Text = string.Format("/// LEVEL_{0:D2}: {1} | TASK: {2:D2}_OF_{3:D2} ///", data.Level, data.LevelTitle, current, total);
+            lblHint.Text = string.Format("> HINT: {0}", data.Hint);
 
             bool isCodeMode = data.Type == QuestionType.CodeInput;
             SetQuestionMode(isCodeMode);
@@ -221,7 +221,7 @@ namespace CodeRift.Forms
             _timeLeftSeconds = _totalAllowedTime;
             _graceLeftSeconds = 3.0;
             _lastTickedSecond = -1;
-            UpdateTimerUI($"[SEC_SECURE: {Math.Ceiling(_timeLeftSeconds):00}s]", DefaultAccent);
+            UpdateTimerUI(string.Format("[SEC_SECURE: {0:00}s]", Math.Ceiling(_timeLeftSeconds)), DefaultAccent);
             _questionTimer.Start();
         }
 
@@ -249,10 +249,10 @@ namespace CodeRift.Forms
 
         private void SetOptions(string a, string b, string c, string d)
         {
-            btnOptionA.Text = $"[ A ]  {a}";
-            btnOptionB.Text = $"[ B ]  {b}";
-            btnOptionC.Text = $"[ C ]  {c}";
-            btnOptionD.Text = $"[ D ]  {d}";
+            btnOptionA.Text = string.Format("[ A ]  {0}", a);
+            btnOptionB.Text = string.Format("[ B ]  {0}", b);
+            btnOptionC.Text = string.Format("[ C ]  {0}", c);
+            btnOptionD.Text = string.Format("[ D ]  {0}", d);
 
             btnOptionA.Tag = a;
             btnOptionB.Tag = b;
@@ -264,23 +264,27 @@ namespace CodeRift.Forms
 
         private void DoubleLine_Paint(object sender, PaintEventArgs e)
         {
-            if (sender is Panel pnl)
+            Panel pnl = sender as Panel;
+            if (pnl != null)
             {
-                using Pen pen = new Pen(_accentColor, 1);
+                using (Pen pen = new Pen(_accentColor, 1))
+                {
+                    e.Graphics.DrawRectangle(pen, 0, 0, pnl.Width - 1, pnl.Height - 1);
+                    e.Graphics.DrawRectangle(pen, 2, 2, pnl.Width - 5, pnl.Height - 5);
 
-                e.Graphics.DrawRectangle(pen, 0, 0, pnl.Width - 1, pnl.Height - 1);
-                e.Graphics.DrawRectangle(pen, 2, 2, pnl.Width - 5, pnl.Height - 5);
-
-                int dividerY = 170;
-                e.Graphics.DrawLine(pen, 0, dividerY, pnl.Width, dividerY);
-                e.Graphics.DrawLine(pen, 0, dividerY + 2, pnl.Width, dividerY + 2);
+                    int dividerY = 170;
+                    e.Graphics.DrawLine(pen, 0, dividerY, pnl.Width, dividerY);
+                    e.Graphics.DrawLine(pen, 0, dividerY + 2, pnl.Width, dividerY + 2);
+                }
             }
         }
 
         private void TopBar_Paint(object sender, PaintEventArgs e)
         {
-            using Pen p = new Pen(_mutedColor, 2);
-            e.Graphics.DrawLine(p, 0, pnlTopBar.Height - 1, pnlTopBar.Width, pnlTopBar.Height - 1);
+            using (Pen p = new Pen(_mutedColor, 2))
+            {
+                e.Graphics.DrawLine(p, 0, pnlTopBar.Height - 1, pnlTopBar.Width, pnlTopBar.Height - 1);
+            }
         }
 
         #endregion
@@ -396,7 +400,7 @@ namespace CodeRift.Forms
             txtCodeInput.ReadOnly = !enabled;
         }
 
-        private bool IsAnswerMatch(string? playerAnswer, string? correctAnswer)
+        private bool IsAnswerMatch(string playerAnswer, string correctAnswer)
         {
             if (string.IsNullOrWhiteSpace(playerAnswer) || string.IsNullOrWhiteSpace(correctAnswer))
             {
@@ -430,20 +434,21 @@ namespace CodeRift.Forms
             btnOptionD.Click += MultipleChoiceOption_Click;
         }
 
-        private void MultipleChoiceOption_Click(object? sender, EventArgs e)
+        private void MultipleChoiceOption_Click(object sender, EventArgs e)
         {
             AudioManager.Instance.PlaySFX(Constants.SFX_CLICK);
-            if (sender is not Button selectedButton || _isSubmitting)
+            Button selectedButton = sender as Button;
+            if (selectedButton == null || _isSubmitting)
             {
                 return;
             }
 
-            _selectedOption = selectedButton.Tag?.ToString() ?? string.Empty;
+            _selectedOption = selectedButton.Tag != null ? selectedButton.Tag.ToString() : string.Empty;
             ClearOptionHighlights();
             HighlightOption(selectedButton);
         }
 
-        private void BattleArenaQuestionForm_KeyDown(object? sender, KeyEventArgs e)
+        private void BattleArenaQuestionForm_KeyDown(object sender, KeyEventArgs e)
         {
             if (_isSubmitting)
             {
@@ -501,7 +506,7 @@ namespace CodeRift.Forms
                 return;
             }
 
-            Button? shortcutButton = GetShortcutButton(e.KeyCode);
+            Button shortcutButton = GetShortcutButton(e.KeyCode);
             if (shortcutButton == null)
             {
                 return;
@@ -511,19 +516,19 @@ namespace CodeRift.Forms
             e.Handled = true;
         }
 
-        private Button? GetShortcutButton(Keys keyCode)
+        private Button GetShortcutButton(Keys keyCode)
         {
-            return keyCode switch
+            switch (keyCode)
             {
-                Keys.A => btnOptionA,
-                Keys.B => btnOptionB,
-                Keys.C => btnOptionC,
-                Keys.D => btnOptionD,
-                _ => null
-            };
+                case Keys.A: return btnOptionA;
+                case Keys.B: return btnOptionB;
+                case Keys.C: return btnOptionC;
+                case Keys.D: return btnOptionD;
+                default: return null;
+            }
         }
 
-        private void BattleArenaQuestionForm_KeyPress(object? sender, KeyPressEventArgs e)
+        private void BattleArenaQuestionForm_KeyPress(object sender, KeyPressEventArgs e)
         {
             if (_isSubmitting || pnlCodeInput.Visible || char.IsControl(e.KeyChar))
             {
@@ -615,7 +620,7 @@ namespace CodeRift.Forms
             pnlMainLayout.Invalidate();
         }
 
-        private void TxtCodeInput_KeyPress(object? sender, KeyPressEventArgs e)
+        private void TxtCodeInput_KeyPress(object sender, KeyPressEventArgs e)
         {
             if (_isShowingCodeInputPlaceholder && !char.IsControl(e.KeyChar))
             {
@@ -623,7 +628,7 @@ namespace CodeRift.Forms
             }
         }
 
-        private void TxtCodeInput_TextChanged(object? sender, EventArgs e)
+        private void TxtCodeInput_TextChanged(object sender, EventArgs e)
         {
             if (_updatingCodeInputPlaceholder)
             {
@@ -668,7 +673,8 @@ namespace CodeRift.Forms
 
         private void InvertedButton_MouseEnter(object sender, EventArgs e)
         {
-            if (sender is Button btn && btn.Enabled)
+            Button btn = sender as Button;
+            if (btn != null && btn.Enabled)
             {
                 AudioManager.Instance.PlaySFX(Constants.SFX_HOVER);
                 btn.BackColor = _accentColor;
@@ -679,12 +685,13 @@ namespace CodeRift.Forms
 
         private void InvertedButton_MouseLeave(object sender, EventArgs e)
         {
-            if (sender is Button btn)
+            Button btn = sender as Button;
+            if (btn != null)
             {
                 if (btn == btnOptionA || btn == btnOptionB || btn == btnOptionC || btn == btnOptionD)
                 {
                     // Keep selected option highlighted.
-                    if ((_selectedOption == (btn.Tag?.ToString() ?? string.Empty)) && !_isSubmitting)
+                    if ((_selectedOption == (btn.Tag != null ? btn.Tag.ToString() : string.Empty)) && !_isSubmitting)
                     {
                         HighlightOption(btn);
                         return;
