@@ -1,0 +1,229 @@
+{
+  "Questions": [
+    {
+      "Level": 1,
+      "LevelTitle": "LOOPS",
+      "Type": 0,
+      "ProblemStatement": "A _______________ is a basic programming construct that allows repeated execution of a fragment of source code.",
+      "Options": [ "Loop", "Termination", "Increment", "Do while" ],
+      "CorrectAnswer": "Loop",
+      "Hint": "Think about cycles or repetition."
+    },
+    {
+      "Level": 1,
+      "LevelTitle": "LOOPS",
+      "Type": 0,
+      "ProblemStatement": "_____________ is any expression that returns a Boolean result – true or false.",
+      "Options": [ "Loop", "Termination", "Condition", "Do while" ],
+      "CorrectAnswer": "Condition",
+      "Hint": "It checks if something is true or false."
+    },
+    {
+      "Level": 1,
+      "LevelTitle": "LOOPS",
+      "Type": 1,
+      "ProblemStatement": "In 'for (int i = 0; i < 10; i++)', what is the increment part?",
+      "Options": null,
+      "CorrectAnswer": "i++",
+      "Hint": "It's the part that happens at the end of every loop."
+    },
+    {
+      "Level": 1,
+      "LevelTitle": "LOOPS",
+      "Type": 1,
+      "ProblemStatement": "In 'for (int i = 0; i < 10; i++)', what is the initialization part?",
+      "Options": null,
+      "CorrectAnswer": "int i = 0",
+      "Hint": "It sets the starting value of the counter."
+    },
+    {
+      "Level": 1,
+      "LevelTitle": "LOOPS",
+      "Type": 0,
+      "ProblemStatement": "The ______________ are programming constructs consisting of several loops located into each other.",
+      "Options": [ "Do while", "Nested loops", "Foreach", "While" ],
+      "CorrectAnswer": "Nested loops",
+      "Hint": "Like a box inside another box."
+    },
+    {
+      "Level": 2,
+      "LevelTitle": "METHODS",
+      "Type": 0,
+      "ProblemStatement": "______________ is the building block of object-oriented programming. It combines related code together and makes program easier.",
+      "Options": [ "User-Defined Method", "Method", "Body", "Return Type" ],
+      "CorrectAnswer": "Method",
+      "Hint": "A function that belongs to a class."
+    },
+    {
+      "Level": 2,
+      "LevelTitle": "METHODS",
+      "Type": 1,
+      "ProblemStatement": "(Order Arrangement)\nArrange the correct order of a method header:\n1. Return Type\n2. Parameter List\n3. Method Name\n4. Access Specifier\n\nFormat your answer like: X-X-X-X",
+      "Options": null,
+      "CorrectAnswer": "4-1-3-2",
+      "Hint": "Start with public/private, then the type, then the name."
+    },
+    {
+      "Level": 2,
+      "LevelTitle": "METHODS",
+      "Type": 1,
+      "ProblemStatement": "A method may return a value. What part of the header defines this?",
+      "Options": null,
+      "CorrectAnswer": "Return Type",
+      "Hint": "It comes before the method name."
+    },
+    {
+      "Level": 2,
+      "LevelTitle": "METHODS",
+      "Type": 1,
+      "ProblemStatement": "What keyword do you use as the return type if the method does not return any value?",
+      "Options": null,
+      "CorrectAnswer": "Void",
+      "Hint": "It means 'empty'."
+    },
+    {
+      "Level": 2,
+      "LevelTitle": "METHODS",
+      "Type": 0,
+      "ProblemStatement": "This contains the set of instructions needed to complete the required activity.",
+      "Options": [ "Method header", "Access Specifier", "Method body", "Return type" ],
+      "CorrectAnswer": "Method body",
+      "Hint": "The code inside the curly braces { }."
+    },
+    {
+      "Level": 3,
+      "LevelTitle": "STRING",
+      "Type": 0,
+      "ProblemStatement": "What is a string in C#?",
+      "Options": [ "A numeric data type", "A data type that can store sequence of characters", "A special loop", "An array of integers" ],
+      "CorrectAnswer": "A data type that can store sequence of characters",
+      "Hint": "Used for text."
+    },
+    {
+      "Level": 3,
+      "LevelTitle": "STRING",
+      "Type": 0,
+      "ProblemStatement": "It removes all the characters in the current instance, beginning at a specified position and continuing through the last position.",
+      "Options": [ "Concat()", "Clear()", "Remove()", "Delete()" ],
+      "CorrectAnswer": "Remove()",
+      "Hint": "Standard string method for deletion."
+    },
+    {
+      "Level": 3,
+      "LevelTitle": "STRING",
+      "Type": 1,
+      "ProblemStatement": "What index number is the first character of a string?",
+      "Options": null,
+      "CorrectAnswer": "0",
+      "Hint": "Computers start counting from..."
+    },
+    {
+      "Level": 3,
+      "LevelTitle": "STRING",
+      "Type": 1,
+      "ProblemStatement": "(Debugging)\nFix the error in this C# snippet:\nstring name = BADing.",
+      "Options": null,
+      "CorrectAnswer": "string name = \"BADing\";",
+      "Hint": "Strings need quotes and semicolons."
+    },
+    {
+      "Level": 3,
+      "LevelTitle": "STRING",
+      "Type": 1,
+      "ProblemStatement": "(Output Prediction)\nstring txt = \"CodeRift\";\nConsole.WriteLine(txt.Substring(4));",
+      "Options": null,
+      "CorrectAnswer": "Rift",
+      "Hint": "Start at index 4 (0:C, 1:o, 2:d, 3:e, 4:R...)"
+    },
+    {
+      "Level": 4,
+      "LevelTitle": "ARRAYS",
+      "Type": 0,
+      "ProblemStatement": "What is true about arrays in C#?",
+      "Options": [ "Can store different data types", "Fixed size, stores same data type elements", "Always starts at index 1", "Grows automatically" ],
+      "CorrectAnswer": "Fixed size, stores same data type elements",
+      "Hint": "Think about memory allocation."
+    },
+    {
+      "Level": 4,
+      "LevelTitle": "ARRAYS",
+      "Type": 0,
+      "ProblemStatement": "int[] numbers = new int[5];\nHow do you access the third element?",
+      "Options": [ "numbers[3]", "numbers[2]", "numbers(2)", "numbers{3}" ],
+      "CorrectAnswer": "numbers[2]",
+      "Hint": "Remember zero-based indexing (0, 1, 2...)"
+    },
+    {
+      "Level": 4,
+      "LevelTitle": "ARRAYS",
+      "Type": 1,
+      "ProblemStatement": "(Order Arrangement)\nArrange correct steps to create/fill an array:\n1. Assign values\n2. Declare type and name\n3. Allocate memory\n\nFormat: X-X-X",
+      "Options": null,
+      "CorrectAnswer": "2-3-1",
+      "Hint": "Declare, Allocate, then Use."
+    },
+    {
+      "Level": 4,
+      "LevelTitle": "ARRAYS",
+      "Type": 1,
+      "ProblemStatement": "string[] items = new string[10];\nHow many elements can this array store?",
+      "Options": null,
+      "CorrectAnswer": "10",
+      "Hint": "Look at the number in the brackets."
+    },
+    {
+      "Level": 4,
+      "LevelTitle": "ARRAYS",
+      "Type": 1,
+      "ProblemStatement": "What exception error occurs if you try to access an index outside the array size?",
+      "Options": null,
+      "CorrectAnswer": "IndexOutOfRangeException",
+      "Hint": "The index is... out of...?"
+    },
+    {
+      "Level": 5,
+      "LevelTitle": "FINAL COMPILATION",
+      "Type": 1,
+      "ProblemStatement": "(Output Prediction)\nstring s1 = \"CODE\";\nstring s2 = String.Concat(s1, \"monster\");\nConsole.WriteLine(s2);",
+      "Options": null,
+      "CorrectAnswer": "CODEmonster",
+      "Hint": "Concatenate means joining them together."
+    },
+    {
+      "Level": 5,
+      "LevelTitle": "FINAL COMPILATION",
+      "Type": 1,
+      "ProblemStatement": "(Queue Operation Output)\nnames.Enqueue(\"NICK\");\nnames.Enqueue(\"Bob\");\nnames.Dequeue();\n// foreach name in names print name",
+      "Options": null,
+      "CorrectAnswer": "Bob",
+      "Hint": "First-In-First-Out (FIFO). NICK was first."
+    },
+    {
+      "Level": 5,
+      "LevelTitle": "FINAL COMPILATION",
+      "Type": 1,
+      "ProblemStatement": "(Debugging)\nfor (int i = 0; i <= scores.Length; i++)\nHow do you fix this to prevent crash?",
+      "Options": null,
+      "CorrectAnswer": "i < scores.Length",
+      "Hint": "The last index is Length minus one."
+    },
+    {
+      "Level": 5,
+      "LevelTitle": "FINAL COMPILATION",
+      "Type": 1,
+      "ProblemStatement": "(Mixed Calculation)\nstring word = \"C#Game\"; //Length 6\nint result = word.Length * 3;\nConsole.WriteLine(result);",
+      "Options": null,
+      "CorrectAnswer": "18",
+      "Hint": "6 times 3 is..."
+    },
+    {
+      "Level": 5,
+      "LevelTitle": "FINAL COMPILATION",
+      "Type": 1,
+      "ProblemStatement": "(Stack Operation Output)\nnums.Push(100); nums.Push(99);\nnums.Pop();\n// foreach n in nums print n",
+      "Options": null,
+      "CorrectAnswer": "100",
+      "Hint": "Last-In-First-Out (LIFO). 99 was last and got popped."
+    }
+  ]
+}
