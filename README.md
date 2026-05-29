@@ -2,134 +2,150 @@
 
 # CodeRift
 
-### Reviewer File Guide
+**An educational quiz-battle game with a cyberpunk terminal aesthetic.**
 
-An educational quiz-battle game built with **.NET Framework 4.8 WinForms** featuring a cyberpunk terminal aesthetic.
+Built with .NET Framework 4.8 WinForms
 
 </div>
 
 ---
 
-## Presentation Order
+## Overview
 
-| # | Member | Topic |
-|:-:|--------|-------|
-| 1 | Member 1 | Splash Screen and Main Menu |
-| 2 | Member 2 | Reusable StoryForm (Prologue & Epilogue) |
-| 3 | Member 3 | Level Menu |
-| 4 | Member 4 | Battle Arena |
-| 5 | Member 5 | Question Form and Final Vent |
+CodeRift is a single-player educational game that combines programming quizzes with turn-based combat. Players progress through five levels, each featuring a unique enemy, answering timed questions to deal damage and advance the storyline. The game features animated sprite-based battles, a visual-novel narrative engine, and full bilingual support (English and Filipino).
 
 ---
 
-## File Guide
+## Features
 
-### 1 - Splash Screen and Main Menu
-
-> Loading screen with async asset preloading, progress bar, and fade transitions into the main menu hub.
-
-| File | Description |
-|------|-------------|
-| `Form1.cs` | Splash screen with async loading, progress bar, fade animation |
-| `Forms/menu.cs` | Main menu hub (Play, Levels, Settings, Credits, Exit) |
-| `Core/AssetBootstrapper.cs` | Preload registry for all game assets |
-| `Core/AssetLoadProgress.cs` | Progress DTO for splash loading feedback |
-| `Core/Transitions/FormTransitionManager.cs` | Splash-to-menu fade transition manager |
-| `Program.cs` | Application entry point |
-| `Managers/AudioManager.cs` | Background music playback |
-| `Managers/ImageManager.cs` | Image caching and loading |
-| `Managers/LanguageManager.cs` | Localized button labels |
-| `Utils/MenuButtonStyle.cs` | Cyberpunk button styling |
+- **Turn-Based Quiz Combat** - Select attack cards and answer programming questions to deal damage. Wrong answers lock your card and trigger enemy retaliation.
+- **Two Question Modes** - Multiple choice (A/B/C/D) and code input, with per-level time limits ranging from 35 to 20 seconds.
+- **Animated Battle System** - Frame-based sprite animations for idle, attack, hurt, and run states with screen shake effects and background tinting.
+- **Five Unique Levels** - Progress through Levels 1-5 (Loops, Methods, Strings, Arrays, Classes), each with a distinct enemy and scaling difficulty.
+- **Visual Novel Engine** - Reusable story system with typewriter text, scene transitions, and click-to-advance dialogue for prologue and epilogue sequences.
+- **Progress Tracking** - Persistent level completion state with unlock gating.
+- **Bilingual Localization** - Full English and Filipino language support across all UI and question content.
+- **Async Asset Preloading** - Background prewarming of sprite frames and assets during the splash screen for zero-lag transitions.
 
 ---
 
-### 2 - Reusable StoryForm (Prologue & Epilogue)
+## Project Structure
 
-> Visual-novel-style engine with typewriter text, scene fades, and click-to-advance. One form, two stories.
-
-| File | Description |
-|------|-------------|
-| `Forms/StoryForm.cs` | Reusable visual-novel display engine |
-| `Forms/StoryConfig.cs` | Data model (`StoryStep`, `StoryConfig`) |
-| `Forms/StoryScripts.cs` | `CreatePrologue()` (49 steps) and `CreateEpilogue()` (24 steps) |
-| `Core/Transitions/FormTransitionManager.cs` | Transitions into/out of StoryForm |
-| `Utils/Constants.cs` | CG image keys (`CG_01`-`CG_13`, `EP_01`-`EP_11`) |
-
----
-
-### 3 - Level Menu
-
-> Level selection with unlock state tracking, background crossfade on hover, and locked-level warnings.
-
-| File | Description |
-|------|-------------|
-| `Forms/LevelsMenuForm.cs` | 5 level buttons with crossfade and unlock state |
-| `Managers/Progress/ProgressManager.cs` | Level unlock/progress tracking |
-| `Managers/Progress/ProgressData.cs` | Save data POCO |
-| `Utils/MenuButtonStyle.cs` | Normal and locked button styles |
-| `Forms/TerminalMessageBox.cs` | "Level Locked" warning dialog |
-
----
-
-### 4 - Battle Arena
-
-> Animated sprite-based combat with HP bars, card selection, idle timer, screen shake, and enemy AI.
-
-| File | Description |
-|------|-------------|
-| `Forms/BattleArenaForm.cs` | Main battle form (~1920 lines) with full animation engine |
-| `Forms/BattleLoaderForm.cs` | Pre-battle loading screen with sprite prewarming |
-| `Core/Battle/QuizBattleEngine.cs` | Pure battle logic (HP, cards, damage, chaining) |
-| `Core/Battle/BattleActorController.cs` | Abstract animated character controller |
-| `Core/Battle/PlayerActorController.cs` | Player character actor |
-| `Core/Battle/EnemyActorController.cs` | Enemy character actor |
-| `Core/Battle/LevelConfig.cs` | Per-level enemy configuration (5 enemies) |
-| `Entities/Question.cs` | Question data model |
-| `Managers/Questions/QuestionManager.cs` | Question bank from `questions.json` |
-
----
-
-### 5 - Question Form and Final Vent
-
-> Terminal-styled quiz modal with countdown timer, multiple input modes, and post-battle result screens.
-
-| File | Description |
-|------|-------------|
-| `Forms/BattleArenaQuestionForm.cs` | Question modal (MultipleChoice / CodeInput, timer, skip commands) |
-| `Forms/FinalVentForm.cs` | Win/lose result screen with level-specific images |
-| `Core/Questions/QuestionSkipCommand.cs` | Parses `///` and `/////` skip commands |
-| `Entities/Question.cs` | Question data model |
-| `Managers/Questions/QuestionManager.cs` | Question bank loader |
+```
+Code-Rift/
+├── Program.cs                          # Application entry point
+├── Form1.cs                            # Splash screen with async asset loading
+├── Forms/
+│   ├── MenuForm.cs                     # Main menu hub
+│   ├── StoryForm.cs                    # Reusable visual-novel display engine
+│   ├── StoryConfig.cs                  # Story data model (StoryStep, StoryConfig)
+│   ├── StoryScripts.cs                 # Prologue and epilogue script definitions
+│   ├── LevelsMenuForm.cs               # Level selection with unlock states
+│   ├── BattleArenaForm.cs              # Main battle form with animation engine
+│   ├── BattleArenaQuestionForm.cs      # Quiz modal (multiple choice / code input)
+│   ├── BattleLoaderForm.cs             # Pre-battle loading with sprite prewarming
+│   ├── FinalVentForm.cs                # Win/lose result screen
+│   ├── TerminalMessageBox.cs           # Styled terminal dialog
+│   ├── settings.cs                     # Settings (language, volume, SFX)
+│   └── credits.cs                      # Credits screen
+├── Core/
+│   ├── AssetBootstrapper.cs            # Asset preload registry
+│   ├── AssetLoadProgress.cs            # Loading progress DTO
+│   ├── Battle/
+│   │   ├── QuizBattleEngine.cs         # Pure battle logic (HP, cards, damage)
+│   │   ├── BattleActorController.cs    # Abstract animated character controller
+│   │   ├── PlayerActorController.cs    # Player character actor
+│   │   ├── EnemyActorController.cs     # Enemy character actor
+│   │   └── LevelConfig.cs             # Per-level enemy configuration
+│   ├── Questions/
+│   │   └── QuestionSkipCommand.cs      # Skip command parser (/// and /////)
+│   └── Transitions/
+│       └── FormTransitionManager.cs    # Form fade transition manager
+├── Entities/
+│   └── Question.cs                     # Question data model
+├── Managers/
+│   ├── AudioManager.cs                 # Background music and SFX (MCI API)
+│   ├── ImageManager.cs                 # Image caching and loading
+│   ├── LanguageManager.cs              # Localization string manager
+│   ├── Questions/
+│   │   └── QuestionManager.cs          # Question bank loader
+│   └── Progress/
+│       ├── ProgressManager.cs          # Level unlock/completion tracking
+│       └── ProgressData.cs             # Save data model
+└── Utils/
+    ├── Constants.cs                    # Central constants (images, audio, strings)
+    ├── AssetPathHelper.cs              # Asset file path resolution
+    ├── MenuButtonStyle.cs              # Cyberpunk button styling
+    ├── questions.json                  # Quiz questions for all 5 levels
+    ├── en.json                         # English localization strings
+    └── ph.json                         # Filipino localization strings
+```
 
 ---
 
-## Shared Files
+## Game Flow
 
-Used across multiple features:
-
-| File | Role |
-|------|------|
-| `Utils/Constants.cs` | Central image/audio/string constants |
-| `Utils/AssetPathHelper.cs` | Asset file path resolution |
-| `Managers/AudioManager.cs` | Audio playback (MCI API) |
-| `Managers/ImageManager.cs` | Image caching |
-| `Managers/LanguageManager.cs` | EN/PH localization |
-| `Core/Transitions/FormTransitionManager.cs` | Form fade transitions |
+```
+Splash Screen
+    └─► Main Menu
+            ├─► Prologue (StoryForm)
+            │       └─► Level Select
+            │               └─► Battle Loader
+            │                       └─► Battle Arena
+            │                               ├─► Question Modal (per turn)
+            │                               └─► Final Vent (win/lose)
+            │                                       └─► Epilogue (StoryForm, Level 5 only)
+            ├─► Settings
+            └─► Credits
+```
 
 ---
 
-## Data Files
+## Battle System
 
-| File | Purpose |
-|------|---------|
-| `Utils/questions.json` | All quiz questions for 5 levels |
-| `Utils/en.json` | English localization strings |
-| `Utils/ph.json` | Filipino localization strings |
+Each level pits the player against an enemy in a card-based quiz duel:
+
+| Mechanic | Description |
+|----------|-------------|
+| **HP** | Both player and enemy start at 100 HP |
+| **Attack Cards** | 5 cards dealing 10/15/20/25/30 damage respectively |
+| **Correct Answer** | Selected card's damage is applied to the enemy |
+| **Wrong Answer** | Card becomes locked; enemy retaliates with chain attacks |
+| **Locked Card** | Must retry the locked card before using any other card |
+| **Idle Timer** | 15-second inactivity timer deals 5 chip damage to the player |
+| **Skip Commands** | Type `///` to skip current question, `/////` to skip all remaining |
+
+---
+
+## Requirements
+
+- **OS:** Windows 10/11
+- **Runtime:** .NET Framework 4.8
+- **IDE:** Visual Studio 2019 or later (for development)
+
+---
+
+## Getting Started
+
+1. Open `Code-Rift.sln` in Visual Studio.
+2. Restore NuGet packages (Newtonsoft.Json).
+3. Build and run the project (`F5`).
+
+---
+
+## Localization
+
+The game supports English and Filipino. Localization strings are stored in:
+
+- `Utils/en.json` - English
+- `Utils/ph.json` - Filipino
+
+Language can be toggled in the Settings screen at runtime.
 
 ---
 
 <div align="center">
 
-**Excluded:** `*.Designer.cs` and `*.resx` (auto-generated WinForms files)
+**Excluded from review:** `*.Designer.cs` and `*.resx` (auto-generated WinForms files)
 
 </div>

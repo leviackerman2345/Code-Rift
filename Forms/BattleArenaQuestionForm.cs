@@ -272,7 +272,7 @@ namespace CodeRift.Forms
                     e.Graphics.DrawRectangle(pen, 0, 0, pnl.Width - 1, pnl.Height - 1);
                     e.Graphics.DrawRectangle(pen, 2, 2, pnl.Width - 5, pnl.Height - 5);
 
-                    int dividerY = 170;
+                    int dividerY = 204;
                     e.Graphics.DrawLine(pen, 0, dividerY, pnl.Width, dividerY);
                     e.Graphics.DrawLine(pen, 0, dividerY + 2, pnl.Width, dividerY + 2);
                 }

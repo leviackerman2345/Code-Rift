@@ -51,7 +51,7 @@ namespace CodeRift.Forms
         private const int IdleFrameCount = 4;
         private const int AnimationTimerIntervalMs = 80;
         private const int ImpactFramesRemaining = 3;
-        private const int GroundBottomPadding = 20;
+        private const int GroundBottomPadding = 24;
         private const int PlayerScalePercent = 105;
         private const string DefaultEnemyAssetFolder = "enemy1";
         private const string DefaultEnemyPortraitFileName = "enemy_level_1.jpeg";
@@ -924,9 +924,11 @@ namespace CodeRift.Forms
             }
             else
             {
-                // Place player on the left quarter, enemy on the right quarter.
-                _playerActor.IdleX = centerX / 2 - playerW / 2;
-                _enemyActor.IdleX = centerX + centerX / 2 - enemyW / 2;
+                // Center both actors as a pair with a balanced gap.
+                int gap = 300;
+                int totalW = playerW + gap + enemyW;
+                _playerActor.IdleX = (pnlBattleZone.Width - totalW) / 2;
+                _enemyActor.IdleX = _playerActor.IdleX + playerW + gap;
             }
 
             // Contact X: where the attacking character's leading edge reaches the target.
