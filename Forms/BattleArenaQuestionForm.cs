@@ -64,7 +64,7 @@ namespace CodeRift.Forms
 
         private void ConfigureTimer()
         {
-            _questionTimer.Interval = 100;
+            _questionTimer.Interval = 100; //milliseconds   
             _questionTimer.Tick += QuestionTimer_Tick;
         }
 
@@ -152,10 +152,10 @@ namespace CodeRift.Forms
 
             foreach (Control child in control.Controls)
             {
-                EnableDoubleBuffer(child);
+                EnableDoubleBuffer(child); // less flickering when panels update their borders/colors
             }
         }
-
+        //layout and styling configuration to achieve the terminal-inspired look and feel.
         private void ConfigureFormLayout()
         {
             FormBorderStyle = FormBorderStyle.None;
@@ -216,7 +216,7 @@ namespace CodeRift.Forms
             {
                 HideCodeInputPlaceholder(clearText: true);
             }
-
+            //refresh the timer for the new question based on its level difficulty.
             _totalAllowedTime = GetAllowedTimeForLevel(data.Level);
             _timeLeftSeconds = _totalAllowedTime;
             _graceLeftSeconds = 3.0;
